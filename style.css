@@ -1,0 +1,249 @@
+/* Custom Scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.4);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.7);
+}
+
+/* Nav Item Active Styling */
+.nav-item.active-nav {
+  background-color: #f0f5ff;
+  color: #1e48db;
+  font-weight: 600;
+}
+
+.dark .nav-item.active-nav {
+  background-color: rgba(30, 58, 138, 0.25);
+  color: #71a2fa;
+}
+
+.nav-item.active-nav .count-badge {
+  background-color: #2b5ff0;
+  color: #ffffff;
+}
+
+.dark .nav-item.active-nav .count-badge {
+  background-color: #1e48db;
+  color: #ffffff;
+}
+
+/* Priority Nav Active */
+.priority-nav-item.active-nav {
+  background-color: rgba(241, 245, 249, 0.8);
+  font-weight: 600;
+}
+
+.dark .priority-nav-item.active-nav {
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+/* Status Filter Pill */
+.status-pill.active-pill {
+  background-color: #1e293b;
+  color: #ffffff;
+}
+
+.dark .status-pill.active-pill {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* Task Card Animations */
+.task-card {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.task-card:hover {
+  transform: translateY(-1px);
+}
+
+.task-card.task-completed {
+  opacity: 0.65;
+}
+
+.task-card.task-completed:hover {
+  opacity: 0.85;
+}
+
+.task-title.completed {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+.dark .task-title.completed {
+  color: #64748b;
+}
+
+/* Custom Checkbox Design */
+.custom-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-checkbox input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkbox-mark {
+  height: 20px;
+  width: 20px;
+  border-radius: 6px;
+  border: 2px solid #cbd5e1;
+  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.dark .checkbox-mark {
+  border-color: #475569;
+}
+
+.custom-checkbox:hover .checkbox-mark {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.custom-checkbox input:checked ~ .checkbox-mark {
+  background-color: #10b981;
+  border-color: #10b981;
+  transform: scale(1.05);
+}
+
+.checkbox-mark svg {
+  display: none;
+  stroke: white;
+  width: 13px;
+  height: 13px;
+  stroke-width: 3;
+}
+
+.custom-checkbox input:checked ~ .checkbox-mark svg {
+  display: block;
+  animation: checkPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.3); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Priority Badges */
+.badge-urgent {
+  background-color: #ffe4e6;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+}
+
+.dark .badge-urgent {
+  background-color: rgba(225, 29, 72, 0.15);
+  color: #fb7185;
+  border-color: rgba(225, 29, 72, 0.3);
+}
+
+.badge-high {
+  background-color: #ffedd5;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
+.dark .badge-high {
+  background-color: rgba(234, 88, 12, 0.15);
+  color: #fb923c;
+  border-color: rgba(234, 88, 12, 0.3);
+}
+
+.badge-medium {
+  background-color: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+}
+
+.dark .badge-medium {
+  background-color: rgba(2, 132, 199, 0.15);
+  color: #38bdf8;
+  border-color: rgba(2, 132, 199, 0.3);
+}
+
+.badge-low {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.dark .badge-low {
+  background-color: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+  border-color: rgba(100, 116, 139, 0.25);
+}
+
+/* Overdue Badge */
+.badge-overdue {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.dark .badge-overdue {
+  background-color: rgba(220, 38, 38, 0.15);
+  color: #f87171;
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+/* Modal Open Animations */
+#task-modal:not(.hidden),
+#category-modal:not(.hidden) {
+  opacity: 1;
+}
+
+#task-modal:not(.hidden) > div,
+#category-modal:not(.hidden) > div {
+  transform: scale(1);
+}
+
+/* Toast Message */
+.toast-msg {
+  pointer-events: auto;
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
