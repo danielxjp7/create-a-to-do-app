@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PontoGPS Pro — Controle de Ponto, Horas Extras e Férias</title>
+  <title>PontoGPS Pro — Ponto, Horas Extras e Férias (¥ Ienes)</title>
 
   <!-- Google Fonts: Plus Jakarta Sans & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -64,7 +64,7 @@
       </div>
       <div>
         <h1 class="font-bold text-base text-slate-900 dark:text-white leading-tight">PontoGPS Pro</h1>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400">Ponto, Extras & Férias</p>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400">Ponto, Extras & Férias (¥ Ienes)</p>
       </div>
     </div>
 
@@ -96,9 +96,9 @@
           <div>
             <div class="flex items-center gap-1.5">
               <h1 class="font-extrabold text-base text-slate-900 dark:text-white tracking-tight">PontoGPS</h1>
-              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800">PRO</span>
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800">PRO ¥</span>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Jornada & Férias CLT</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Jornada & Férias (¥ Ienes)</p>
           </div>
         </div>
       </div>
@@ -139,7 +139,7 @@
             <i data-lucide="palmtree" class="w-4 h-4 text-amber-500"></i>
             <span>Férias Remuneradas</span>
           </span>
-          <span id="tab-count-ferias" class="text-xs px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-medium">1/3</span>
+          <span id="tab-count-ferias" class="text-xs px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-medium">0d</span>
         </button>
 
         <button data-tab="relatorios" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
@@ -152,15 +152,16 @@
           <span>Configurações & GPS</span>
         </button>
 
-        <!-- Regra de Hora Extra Banner -->
-        <div class="mt-6 p-3.5 rounded-2xl bg-brand-50/80 dark:bg-brand-950/40 border border-brand-200/80 dark:border-brand-800/80 text-xs text-brand-900 dark:text-brand-200">
-          <div class="flex items-center gap-1.5 font-bold mb-1">
+        <!-- Regra de Horário e Férias Banner -->
+        <div class="mt-6 p-3.5 rounded-2xl bg-brand-50/80 dark:bg-brand-950/40 border border-brand-200/80 dark:border-brand-800/80 text-xs text-brand-900 dark:text-brand-200 space-y-2">
+          <div class="flex items-center gap-1.5 font-bold">
             <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i>
-            <span>Regra de Horário</span>
+            <span>Regras da Jornada</span>
           </div>
           <p class="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
             • <strong>08h00 às 17h00</strong>: Horário Normal<br>
-            • <strong>Antes das 08h ou após 17h</strong>: Hora Extra (50% ou 100%)
+            • <strong>Antes das 08h / após 17h</strong>: Hora Extra (¥)<br>
+            • <strong>Férias</strong>: Dia de descanso (8h × % hora normal), sem somar em horas trabalhadas e pago no salário final.
           </p>
         </div>
       </div>
@@ -173,7 +174,7 @@
         </button>
 
         <div class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
-          v2.0 GPS Local
+          Moeda: Ienes (JPY ¥)
         </div>
 
         <button id="export-backup-btn" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Exportar backup dos dados">
@@ -185,7 +186,7 @@
     <!-- Main Workspace Area -->
     <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50/50 dark:bg-slate-950">
       
-      <!-- Top Header Bar with Live Clock & Quick Earnings -->
+      <!-- Top Header Bar with Live Clock, Period & Quick Earnings -->
       <header class="h-16 px-4 lg:px-8 bg-white dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800/80 flex items-center justify-between gap-4 sticky top-0 z-20">
         
         <div class="flex items-center gap-3">
@@ -196,21 +197,28 @@
         </div>
 
         <!-- Quick Summary Badges -->
-        <div class="flex items-center gap-2 sm:gap-4">
-          <!-- Rate Badge -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          
+          <!-- Period Badge Trigger -->
+          <button id="header-period-btn" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors" title="Ajustar período de cálculo do mês">
+            <i data-lucide="calendar-range" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i>
+            <span id="header-period-label">Período: -- a --</span>
+          </button>
+
+          <!-- Rate Badge (JPY) -->
           <div class="hidden sm:flex flex-col text-right">
             <span class="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Valor Hora</span>
-            <span id="header-rate-display" class="text-xs font-bold text-slate-800 dark:text-slate-200">R$ 25,00/h</span>
+            <span id="header-rate-display" class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">¥ 1.500/h</span>
           </div>
 
-          <!-- Month Estimated Total -->
+          <!-- Total Final a Receber no Período -->
           <div class="bg-brand-50 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/60 px-3 py-1.5 rounded-xl flex items-center gap-2">
             <div class="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white">
               <i data-lucide="wallet" class="w-4 h-4"></i>
             </div>
             <div>
-              <span class="block text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">Total do Mês</span>
-              <span id="header-month-earnings" class="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">R$ 0,00</span>
+              <span class="block text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">Salário a Receber</span>
+              <span id="header-month-earnings" class="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white font-mono">¥ 0</span>
             </div>
           </div>
 
@@ -225,6 +233,44 @@
       <!-- Dynamic Tab Content Views Container -->
       <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar" id="content-scroll-container">
         <div class="max-w-6xl mx-auto space-y-6">
+
+          <!-- Global Period Filter Bar (Controle de Data de Início e Fim do Cálculo) -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <i data-lucide="calendar-range" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <span class="text-xs font-bold text-slate-900 dark:text-white">Período de Apuração do Salário</span>
+                <p class="text-[11px] text-slate-500">Defina o intervalo de datas (ex: Fechamento dia 20, 25 ou Mês Calendário)</p>
+              </div>
+            </div>
+
+            <!-- Date range inputs & quick presets -->
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-1.5 text-xs">
+                <label class="text-slate-400 font-medium">De:</label>
+                <input type="date" id="period-start-date" class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold">
+              </div>
+
+              <div class="flex items-center gap-1.5 text-xs">
+                <label class="text-slate-400 font-medium">Até:</label>
+                <input type="date" id="period-end-date" class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold">
+              </div>
+
+              <div class="flex items-center gap-1">
+                <button id="preset-month-btn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition-colors" title="1º ao último dia do mês atual">
+                  Mês Atual
+                </button>
+                <button id="preset-closing-20-btn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition-colors" title="Dia 21 do mês anterior ao dia 20 deste mês">
+                  Dia 20
+                </button>
+                <button id="preset-closing-25-btn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition-colors" title="Dia 26 do mês anterior ao dia 25 deste mês">
+                  Dia 25
+                </button>
+              </div>
+            </div>
+          </div>
 
           <!-- ================= TAB 1: PONTO & GPS ================= -->
           <div id="tab-ponto" class="tab-content space-y-6">
@@ -265,7 +311,7 @@
                         <i data-lucide="radio" class="w-5 h-5 text-brand-600"></i>
                         <span>Registro de Jornada Hoje</span>
                       </h2>
-                      <p class="text-xs text-slate-500 dark:text-slate-400">Entrada, intervalos, saída e cálculo automático de extras</p>
+                      <p class="text-xs text-slate-500 dark:text-slate-400">Entrada, intervalos, saída e cálculo de horas extras em Ienes (¥)</p>
                     </div>
 
                     <!-- Geolocation Match Badge -->
@@ -310,7 +356,7 @@
                   <div class="p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/60 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     <div>
                       <span class="text-slate-400 font-medium">Horas Normais:</span>
-                      <div id="today-calc-normal" class="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">0.0h (R$ 0,00)</div>
+                      <div id="today-calc-normal" class="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">0.0h (¥ 0)</div>
                     </div>
                     <div>
                       <span class="text-slate-400 font-medium">Extras Manhã (< 8h):</span>
@@ -322,7 +368,7 @@
                     </div>
                     <div>
                       <span class="text-slate-400 font-medium">Ganho Total do Dia:</span>
-                      <div id="today-calc-total-val" class="text-sm font-extrabold text-brand-600 dark:text-brand-400 font-mono">R$ 0,00</div>
+                      <div id="today-calc-total-val" class="text-sm font-extrabold text-brand-600 dark:text-brand-400 font-mono">¥ 0</div>
                     </div>
                   </div>
                 </div>
@@ -384,11 +430,11 @@
                       <i data-lucide="sparkles" class="w-3 h-3 text-amber-500"></i>
                       <span>Início Mais Provável</span>
                     </div>
-                    <span>Se você chegar antes das 08h00, o sistema já calcula automaticamente a hora de início exata e a fração de hora extra correspondente.</span>
+                    <span>Chegando antes das 08h00, o app marca a hora exata e já calcula a fração de hora extra correspondente em ienes.</span>
                   </div>
                 </div>
 
-                <!-- Simulation Tools (Great for testing in browser without moving!) -->
+                <!-- Simulation Tools -->
                 <div class="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                   <span class="text-[10px] uppercase font-bold text-slate-400">Ferramenta de Teste GPS:</span>
                   <div class="grid grid-cols-2 gap-2">
@@ -444,10 +490,10 @@
                 <div>
                   <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <i data-lucide="calendar-check" class="w-5 h-5 text-emerald-600"></i>
-                    <span>Histórico Detalhado de Jornada</span>
+                    <span>Histórico de Jornada e Férias</span>
                   </h2>
                   <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Todos os dias trabalhados com decomposição precisa de horas normais e horas extras
+                    Dias trabalhados e dias de férias remuneradas do período selecionado
                   </p>
                 </div>
 
@@ -463,18 +509,26 @@
                 </div>
               </div>
 
-              <!-- Month / Filter Controls -->
-              <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <!-- Filter Totals Indicator -->
+              <div class="flex flex-wrap items-center justify-between gap-3 mb-4 bg-slate-50/70 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 text-xs">
                 <div class="flex items-center gap-2">
-                  <label class="text-xs font-semibold text-slate-500">Filtrar Mês:</label>
-                  <input type="month" id="history-month-filter" class="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium">
+                  <span class="text-slate-500">Período ativo:</span>
+                  <span id="history-period-display" class="font-bold text-slate-800 dark:text-slate-200 font-mono">-- a --</span>
                 </div>
 
-                <div class="flex items-center gap-3 text-xs">
-                  <span class="text-slate-500">Total do Filtro:</span>
-                  <span id="history-filter-total-hours" class="font-bold text-slate-800 dark:text-slate-200 font-mono">0.0h</span>
-                  <span class="text-slate-300">|</span>
-                  <span id="history-filter-total-value" class="font-extrabold text-brand-600 dark:text-brand-400 font-mono">R$ 0,00</span>
+                <div class="flex flex-wrap items-center gap-4 text-xs">
+                  <div>
+                    <span class="text-slate-500">Horas Físicas:</span>
+                    <span id="history-filter-total-hours" class="font-bold text-slate-800 dark:text-slate-200 font-mono">0.0h</span>
+                  </div>
+                  <div>
+                    <span class="text-slate-500">Dias Férias:</span>
+                    <span id="history-filter-vacation-days" class="font-bold text-purple-600 dark:text-purple-400 font-mono">0d</span>
+                  </div>
+                  <div>
+                    <span class="text-slate-500">Salário a Receber:</span>
+                    <span id="history-filter-total-value" class="font-extrabold text-brand-600 dark:text-brand-400 font-mono">¥ 0</span>
+                  </div>
                 </div>
               </div>
 
@@ -484,13 +538,12 @@
                   <thead class="bg-slate-50 dark:bg-slate-800/80 uppercase text-[10px] font-bold text-slate-400 dark:text-slate-500 border-b border-slate-200/80 dark:border-slate-800">
                     <tr>
                       <th class="py-3 px-4">Data</th>
-                      <th class="py-3 px-3">Entrada</th>
+                      <th class="py-3 px-3">Tipo / Horário</th>
                       <th class="py-3 px-3">Intervalo</th>
-                      <th class="py-3 px-3">Saída</th>
                       <th class="py-3 px-3 text-center">Horas Normais</th>
                       <th class="py-3 px-3 text-center">Horas Extras</th>
                       <th class="py-3 px-3">Valor / Hora</th>
-                      <th class="py-3 px-4 text-right">Total (R$)</th>
+                      <th class="py-3 px-4 text-right">Total a Receber (¥)</th>
                       <th class="py-3 px-3 text-center">Ações</th>
                     </tr>
                   </thead>
@@ -506,91 +559,100 @@
                   <i data-lucide="calendar-x" class="w-6 h-6"></i>
                 </div>
                 <h4 class="font-bold text-slate-800 dark:text-slate-200 text-sm">Nenhum registro para este período</h4>
-                <p class="text-xs text-slate-500 mt-1">Bata o ponto na aba principal ou faça um lançamento manual.</p>
+                <p class="text-xs text-slate-500 mt-1">Ajuste o período acima, bata o ponto ou faça um lançamento manual.</p>
               </div>
             </div>
 
           </div>
 
-          <!-- ================= TAB 3: FÉRIAS REMUNERADAS ================= -->
+          <!-- ================= TAB 3: FÉRIAS REMUNERADAS (YUKYU) ================= -->
           <div id="tab-ferias" class="tab-content hidden space-y-6">
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              <!-- Left: Calculadora de Férias Remuneradas e Adicional 1/3 CLT -->
+              <!-- Left: Calculadora de Férias Remuneradas por Porcentagem de Hora Normal -->
               <div class="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
                 <div class="pb-3 border-b border-slate-100 dark:border-slate-800">
                   <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
                     <i data-lucide="palmtree" class="w-5 h-5 text-amber-500"></i>
-                    <span>Cálculo de Férias CLT</span>
+                    <span>Férias Remuneradas (Yukyu)</span>
                   </h3>
                   <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Calcula dias gozados + Adicional Constitucional de 1/3 (Art. 7º, XVII CF/88)
+                    Calculadas na porcentagem da hora normal (1 dia = 8h normais). Entram direto no salário final sem contar como horas trabalhadas.
                   </p>
                 </div>
 
                 <form id="ferias-calc-form" class="space-y-3.5">
                   <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Salário Base Mensal (R$)</label>
-                    <input type="number" step="0.01" id="ferias-salario-input" value="4400.00" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Valor da Hora Normal Base (¥/h)</label>
+                    <input type="number" step="1" id="ferias-hourly-rate-input" value="1500" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
+                  </div>
+
+                  <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Porcentagem da Hora Normal (%)</label>
+                    <div class="flex items-center gap-2">
+                      <input type="number" min="10" max="200" step="1" id="ferias-pct-input" value="100" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
+                      <span class="text-xs text-slate-400 shrink-0 font-medium">% da hora</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400">Padrão integral: 100% (8h integrais por dia)</span>
                   </div>
 
                   <div class="grid grid-cols-2 gap-2">
                     <div>
-                      <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Data Início</label>
+                      <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Data do Dia/Início</label>
                       <input type="date" id="ferias-data-inicio" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium">
                     </div>
                     <div>
-                      <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Dias Gozados</label>
-                      <input type="number" id="ferias-dias-input" min="5" max="30" value="30" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+                      <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Quantidade de Dias</label>
+                      <input type="number" id="ferias-dias-input" min="1" max="40" value="1" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
                     </div>
-                  </div>
-
-                  <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Vender 10 dias (Abono Pecuniário)?</label>
-                    <select id="ferias-abono-select" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium">
-                      <option value="nao">Não (Gozar dias selecionados)</option>
-                      <option value="sim">Sim (Converter 1/3 em dinheiro)</option>
-                    </select>
                   </div>
 
                   <!-- Live Calculation Box -->
                   <div class="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 text-xs space-y-2">
                     <div class="flex items-center justify-between">
-                      <span class="text-amber-800 dark:text-amber-300">Valor das Férias:</span>
-                      <span id="calc-ferias-base" class="font-mono font-bold text-slate-900 dark:text-white">R$ 0,00</span>
+                      <span class="text-amber-800 dark:text-amber-300">Equivalência de Horas:</span>
+                      <span id="calc-ferias-hours-equiv" class="font-mono font-bold text-slate-900 dark:text-white">8.0h por dia</span>
                     </div>
                     <div class="flex items-center justify-between">
-                      <span class="text-amber-800 dark:text-amber-300">1/3 Constitucional:</span>
-                      <span id="calc-ferias-terco" class="font-mono font-bold text-emerald-600 dark:text-emerald-400">+ R$ 0,00</span>
+                      <span class="text-amber-800 dark:text-amber-300">Valor Diário (8h × %):</span>
+                      <span id="calc-ferias-daily-val" class="font-mono font-bold text-slate-900 dark:text-white">¥ 12.000</span>
                     </div>
                     <div class="pt-2 border-t border-amber-200 dark:border-amber-800 flex items-center justify-between">
-                      <span class="font-bold text-amber-950 dark:text-amber-200">Total a Receber:</span>
-                      <span id="calc-ferias-total" class="font-mono font-extrabold text-sm text-brand-600 dark:text-brand-400">R$ 0,00</span>
+                      <span class="font-bold text-amber-950 dark:text-amber-200">Total a Somar no Salário:</span>
+                      <span id="calc-ferias-total" class="font-mono font-extrabold text-sm text-brand-600 dark:text-brand-400">¥ 12.000</span>
                     </div>
+                  </div>
+
+                  <div class="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-[11px] text-purple-900 dark:text-purple-300">
+                    <div class="font-bold flex items-center gap-1 mb-0.5">
+                      <i data-lucide="info" class="w-3.5 h-3.5 text-purple-600"></i>
+                      <span>Regra do Sistema</span>
+                    </div>
+                    <span>O dia é registrado como descanso remunerado: <strong>0h adicionadas</strong> nas horas trabalhadas físicas, e o valor vai direto para o salário final a receber.</span>
                   </div>
 
                   <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white font-bold text-xs shadow-md shadow-amber-600/25 transition-all flex items-center justify-center gap-1.5">
                     <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                    <span>Salvar Período de Férias</span>
+                    <span>Registrar Dia(s) de Férias</span>
                   </button>
                 </form>
               </div>
 
-              <!-- Right: Histórico de Períodos de Férias Registrados -->
+              <!-- Right: Histórico de Dias de Férias Concedidos -->
               <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                   <div>
                     <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
                       <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                      <span>Períodos de Férias Concedidos</span>
+                      <span>Dias de Férias Registrados</span>
                     </h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Histórico de saídas de férias e comprovantes de valores</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Descansos remunerados no período atual</p>
                   </div>
 
                   <div class="text-right">
-                    <span class="text-[10px] font-bold uppercase text-slate-400">Total Acumulado em Férias</span>
-                    <div id="ferias-historico-total" class="font-mono font-extrabold text-sm text-brand-600 dark:text-brand-400">R$ 0,00</div>
+                    <span class="text-[10px] font-bold uppercase text-slate-400">Total Férias no Período</span>
+                    <div id="ferias-historico-total" class="font-mono font-extrabold text-sm text-brand-600 dark:text-brand-400">¥ 0</div>
                   </div>
                 </div>
 
@@ -603,8 +665,8 @@
                   <div class="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center mx-auto mb-2 text-amber-500">
                     <i data-lucide="sun" class="w-6 h-6"></i>
                   </div>
-                  <h4 class="font-bold text-slate-800 dark:text-slate-200 text-sm">Nenhum período de férias registrado ainda</h4>
-                  <p class="text-xs text-slate-500 mt-1">Utilize o formulário ao lado para calcular e agendar suas férias.</p>
+                  <h4 class="font-bold text-slate-800 dark:text-slate-200 text-sm">Nenhum dia de férias no período ativo</h4>
+                  <p class="text-xs text-slate-500 mt-1">Utilize o formulário ao lado para registrar seus dias de férias remuneradas.</p>
                 </div>
               </div>
 
@@ -622,33 +684,34 @@
                 <div>
                   <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <i data-lucide="receipt" class="w-5 h-5 text-indigo-600"></i>
-                    <span>Demonstrativo Mensal & Holerite Estimado</span>
+                    <span>Demonstrativo do Período & Holerite (¥ Ienes)</span>
                   </h2>
                   <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Visão consolidada de proventos: Horas Normais, Horas Extras (50%/100%) e Férias
+                    Resumo exato de Horas Normais, Horas Extras, Dias de Férias e Salário Final a Receber
                   </p>
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <input type="month" id="report-month-select" class="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
-                  <button id="print-report-btn" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                  <button id="print-report-btn" class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors">
                     <i data-lucide="printer" class="w-3.5 h-3.5"></i>
-                    <span>Imprimir / PDF</span>
+                    <span>Imprimir / Gerar PDF</span>
                   </button>
                 </div>
               </div>
 
-              <!-- Holerite Summary Card (Brazilian Standard Receipt Design) -->
+              <!-- Holerite Summary Card -->
               <div id="printable-holerite" class="mt-6 bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-6">
                 
                 <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
                   <div>
-                    <h3 class="font-extrabold text-base text-slate-900 dark:text-white">RECIBO DE PAGAMENTO / DEMONSTRATIVO DE HORAS</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Referência: <span id="holerite-ref-month" class="font-bold text-slate-700 dark:text-slate-300">Novembro / 2026</span></p>
+                    <h3 class="font-extrabold text-base text-slate-900 dark:text-white">DEMONSTRATIVO DE PAGAMENTO / HOLERITE</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Período de Apuração: <span id="holerite-ref-month" class="font-bold text-slate-800 dark:text-slate-200 font-mono">-- a --</span>
+                    </p>
                   </div>
                   <div class="text-right">
-                    <span class="text-[10px] uppercase font-bold text-slate-400">Emitido por</span>
-                    <div class="text-xs font-bold text-brand-600 dark:text-brand-400">PontoGPS Pro</div>
+                    <span class="text-[10px] uppercase font-bold text-slate-400">Moeda</span>
+                    <div class="text-xs font-extrabold text-brand-600 dark:text-brand-400 font-mono">Ienes (JPY ¥)</div>
                   </div>
                 </div>
 
@@ -657,25 +720,25 @@
                   <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700">
                     <span class="text-[10px] font-bold uppercase text-slate-400">1. Horas Normais</span>
                     <div id="rep-normal-hours" class="text-lg font-mono font-bold text-slate-800 dark:text-slate-100 mt-1">0.0h</div>
-                    <div id="rep-normal-val" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">R$ 0,00</div>
+                    <div id="rep-normal-val" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">¥ 0</div>
                   </div>
 
                   <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700">
                     <span class="text-[10px] font-bold uppercase text-slate-400">2. Horas Extras (< 8h / > 17h)</span>
                     <div id="rep-extra-hours" class="text-lg font-mono font-bold text-amber-500 mt-1">0.0h</div>
-                    <div id="rep-extra-val" class="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-0.5">R$ 0,00</div>
+                    <div id="rep-extra-val" class="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-0.5">¥ 0</div>
                   </div>
 
                   <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700">
                     <span class="text-[10px] font-bold uppercase text-slate-400">3. Férias Remuneradas</span>
                     <div id="rep-ferias-days" class="text-lg font-mono font-bold text-purple-500 mt-1">0 dias</div>
-                    <div id="rep-ferias-val" class="text-xs font-semibold text-purple-600 dark:text-purple-400 mt-0.5">R$ 0,00</div>
+                    <div id="rep-ferias-val" class="text-xs font-semibold text-purple-600 dark:text-purple-400 mt-0.5">¥ 0</div>
                   </div>
 
                   <div class="p-4 rounded-xl bg-brand-600 text-white">
-                    <span class="text-[10px] font-bold uppercase text-brand-200">Total Bruto Estimado</span>
-                    <div id="rep-total-earnings" class="text-xl font-mono font-extrabold mt-1">R$ 0,00</div>
-                    <div class="text-[10px] text-brand-100 mt-0.5">Proventos do Período</div>
+                    <span class="text-[10px] font-bold uppercase text-brand-200">Salário Final a Receber</span>
+                    <div id="rep-total-earnings" class="text-xl font-mono font-extrabold mt-1">¥ 0</div>
+                    <div class="text-[10px] text-brand-100 mt-0.5">Normais + Extras + Férias</div>
                   </div>
                 </div>
 
@@ -687,42 +750,49 @@
                         <th class="py-2.5 px-4">Cód / Descrição</th>
                         <th class="py-2.5 px-3">Referência</th>
                         <th class="py-2.5 px-3">Valor Unitário</th>
-                        <th class="py-2.5 px-4 text-right">Proventos (R$)</th>
+                        <th class="py-2.5 px-4 text-right">Proventos (¥)</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
                       <tr>
                         <td class="py-2.5 px-4 font-sans font-medium text-slate-800 dark:text-slate-200">001 - Horas Normais Trabalhadas</td>
                         <td class="py-2.5 px-3" id="table-row-normal-ref">0.0h</td>
-                        <td class="py-2.5 px-3" id="table-row-normal-unit">R$ 25,00/h</td>
-                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-normal-tot">R$ 0,00</td>
+                        <td class="py-2.5 px-3" id="table-row-normal-unit">¥ 1.500/h</td>
+                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-normal-tot">¥ 0</td>
                       </tr>
                       <tr>
-                        <td class="py-2.5 px-4 font-sans font-medium text-slate-800 dark:text-slate-200">002 - Horas Extras (50% adicional)</td>
+                        <td class="py-2.5 px-4 font-sans font-medium text-slate-800 dark:text-slate-200">002 - Horas Extras (< 8h / > 17h)</td>
                         <td class="py-2.5 px-3" id="table-row-extra-ref">0.0h</td>
-                        <td class="py-2.5 px-3" id="table-row-extra-unit">R$ 37,50/h</td>
-                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-extra-tot">R$ 0,00</td>
+                        <td class="py-2.5 px-3" id="table-row-extra-unit">¥ 1.875/h</td>
+                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-extra-tot">¥ 0</td>
                       </tr>
                       <tr>
-                        <td class="py-2.5 px-4 font-sans font-medium text-slate-800 dark:text-slate-200">003 - Férias Gozadas no Mês</td>
+                        <td class="py-2.5 px-4 font-sans font-medium text-slate-800 dark:text-slate-200">
+                          003 - Férias Remuneradas (8h normais/dia)
+                          <span class="block text-[10px] text-slate-400 font-sans">Sem somar nas horas trabalhadas físicas</span>
+                        </td>
                         <td class="py-2.5 px-3" id="table-row-ferias-ref">0 dias</td>
-                        <td class="py-2.5 px-3">--</td>
-                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-ferias-tot">R$ 0,00</td>
-                      </tr>
-                      <tr>
-                        <td class="py-2.5 px-4 font-sans font-medium text-slate-800 dark:text-slate-200">004 - 1/3 Constitucional de Férias</td>
-                        <td class="py-2.5 px-3">33.33%</td>
-                        <td class="py-2.5 px-3">--</td>
-                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-terco-tot">R$ 0,00</td>
+                        <td class="py-2.5 px-3" id="table-row-ferias-unit">¥ 12.000/dia</td>
+                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-ferias-tot">¥ 0</td>
                       </tr>
                     </tbody>
                     <tfoot class="bg-slate-50 dark:bg-slate-800/60 font-bold border-t border-slate-200 dark:border-slate-700">
                       <tr>
-                        <td colspan="3" class="py-3 px-4 text-slate-700 dark:text-slate-300 font-sans">TOTAL GERAL ESTIMADO:</td>
-                        <td class="py-3 px-4 text-right text-brand-600 dark:text-brand-400 font-mono text-sm" id="table-row-grand-total">R$ 0,00</td>
+                        <td colspan="3" class="py-3 px-4 text-slate-700 dark:text-slate-300 font-sans">TOTAL FINAL A RECEBER:</td>
+                        <td class="py-3 px-4 text-right text-brand-600 dark:text-brand-400 font-mono text-base font-extrabold" id="table-row-grand-total">¥ 0</td>
                       </tr>
                     </tfoot>
                   </table>
+                </div>
+
+                <!-- Footnote on physical hours vs vacation -->
+                <div class="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-3">
+                  <div>
+                    Total de Horas Físicas Trabalhadas: <strong id="holerite-physical-hours" class="font-mono text-slate-700 dark:text-slate-300">0.0h</strong>
+                  </div>
+                  <div>
+                    Emissão Automática PontoGPS Pro
+                  </div>
                 </div>
 
               </div>
@@ -739,58 +809,65 @@
               <div class="pb-3 border-b border-slate-100 dark:border-slate-800">
                 <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <i data-lucide="settings" class="w-5 h-5 text-brand-600"></i>
-                  <span>Configurações do Usuário & Parâmetros GPS</span>
+                  <span>Configurações do Usuário & Parâmetros (¥ Ienes)</span>
                 </h2>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Ajuste o valor da sua hora, regras de hora extra e coordenadas do seu trabalho
+                  Ajuste o valor da hora em ienes, data padrão de fechamento do mês, regras de hora extra e GPS
                 </p>
               </div>
 
               <form id="settings-form" class="space-y-5">
                 
-                <!-- Valores e Taxas -->
+                <!-- Valores e Taxas em Ienes -->
                 <div>
-                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">1. Valores & Adicionais</h3>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">1. Valores & Adicionais em Ienes (¥)</h3>
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Valor da Hora Normal (R$/h) *</label>
-                      <input type="number" step="0.01" id="cfg-hourly-rate" value="25.00" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Valor da Hora Normal (¥/h) *</label>
+                      <input type="number" step="1" id="cfg-hourly-rate" value="1500" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:border-brand-500">
+                      <span class="text-[10px] text-slate-400">Ex: ¥ 1.500 por hora</span>
                     </div>
 
                     <div>
-                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Adicional Hora Extra Normal (%)</label>
-                      <input type="number" id="cfg-overtime-pct" value="50" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
-                      <span class="text-[10px] text-slate-400">Padrão CLT: 50%</span>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Adicional Hora Extra (%) *</label>
+                      <input type="number" id="cfg-overtime-pct" value="25" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
+                      <span class="text-[10px] text-slate-400">Padrão Japão: 25% (ou 50%)</span>
                     </div>
 
                     <div>
-                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Salário Base Mensal Referência (R$)</label>
-                      <input type="number" step="0.01" id="cfg-monthly-salary" value="4400.00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
-                      <span class="text-[10px] text-slate-400">Usado para cálculo de férias</span>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">% Padrão da Hora nas Férias *</label>
+                      <input type="number" id="cfg-vacation-pct" value="100" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
+                      <span class="text-[10px] text-slate-400">Padrão: 100% (8h integrais por dia)</span>
                     </div>
                   </div>
                 </div>
 
-                <!-- Horário Padrão de Trabalho -->
+                <!-- Fechamento do Mês (Data Início e Fim) -->
                 <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">2. Horário da Jornada Padrão</h3>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">2. Fechamento do Mês (Período Padrão)</h3>
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Dia de Fechamento Padrão</label>
+                      <select id="cfg-closing-day" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+                        <option value="20">Dia 20 (Período: 21 ao 20)</option>
+                        <option value="25">Dia 25 (Período: 26 ao 25)</option>
+                        <option value="last" selected>Último Dia (Mês Calendário 01 ao 30/31)</option>
+                        <option value="15">Dia 15 (Período: 16 ao 15)</option>
+                        <option value="10">Dia 10 (Período: 11 ao 10)</option>
+                      </select>
+                      <span class="text-[10px] text-slate-400">Shimebi / data de corte da empresa</span>
+                    </div>
+
                     <div>
                       <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Início da Jornada Normal</label>
                       <input type="time" id="cfg-start-time" value="08:00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
-                      <span class="text-[10px] text-slate-400">Antes deste horário = Hora Extra</span>
+                      <span class="text-[10px] text-slate-400">Antes = Hora Extra</span>
                     </div>
 
                     <div>
                       <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Término da Jornada Normal</label>
                       <input type="time" id="cfg-end-time" value="17:00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
-                      <span class="text-[10px] text-slate-400">Depois deste horário = Hora Extra</span>
-                    </div>
-
-                    <div>
-                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Intervalo Padrão Almoço (min)</label>
-                      <input type="number" id="cfg-lunch-minutes" value="60" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
-                      <span class="text-[10px] text-slate-400">Ex: 60 minutos (1 hora)</span>
+                      <span class="text-[10px] text-slate-400">Depois = Hora Extra</span>
                     </div>
                   </div>
                 </div>
@@ -808,12 +885,12 @@
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Latitude</label>
-                      <input type="number" step="any" id="cfg-work-lat" value="-23.55052" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-semibold">
+                      <input type="number" step="any" id="cfg-work-lat" value="35.681236" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-semibold">
                     </div>
 
                     <div>
                       <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Longitude</label>
-                      <input type="number" step="any" id="cfg-work-lng" value="-46.633308" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-semibold">
+                      <input type="number" step="any" id="cfg-work-lng" value="139.767125" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-semibold">
                     </div>
 
                     <div>
@@ -846,7 +923,7 @@
 
   </div>
 
-  <!-- Modal: Adicionar / Editar Lançamento Manual -->
+  <!-- Modal: Adicionar / Editar Lançamento Manual (Com Opção de Férias Remuneradas) -->
   <div id="entry-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity">
     <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden transform scale-95 transition-transform flex flex-col max-h-[90vh]">
       
@@ -868,46 +945,64 @@
           <input type="date" id="entry-date" required class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium">
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Hora de Entrada *</label>
-            <input type="time" id="entry-start-time" required class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+        <!-- Opção de Dia de Férias Remuneradas (Yukyu) -->
+        <div class="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60">
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" id="entry-is-vacation" class="rounded text-brand-600 focus:ring-brand-500 w-4 h-4 cursor-pointer">
+            <span class="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+              <i data-lucide="palmtree" class="w-4 h-4 text-amber-500"></i>
+              <span>Marcar como Dia de Férias Remuneradas</span>
+            </span>
+          </label>
+          <p class="text-[11px] text-amber-700 dark:text-amber-400 mt-1 pl-6 leading-relaxed">
+            Conta como 8h normais pagas no salário final, sem somar nas horas físicas trabalhadas.
+          </p>
+        </div>
+
+        <!-- Seção de Horários de Trabalho (Ocultada se for Férias) -->
+        <div id="entry-hours-section" class="space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Hora de Entrada *</label>
+              <input type="time" id="entry-start-time" value="08:00" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Hora de Saída *</label>
+              <input type="time" id="entry-end-time" value="17:00" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+            </div>
           </div>
-          <div>
-            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Hora de Saída *</label>
-            <input type="time" id="entry-end-time" required class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Saída Almoço</label>
+              <input type="time" id="entry-lunch-start" value="12:00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Retorno Almoço</label>
+              <input type="time" id="entry-lunch-end" value="13:00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Saída Almoço</label>
-            <input type="time" id="entry-lunch-start" value="12:00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
-          </div>
-          <div>
-            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Retorno Almoço</label>
-            <input type="time" id="entry-lunch-end" value="13:00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
-          </div>
-        </div>
-
+        <!-- Valor da Hora do Registro -->
         <div>
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Valor da Hora neste dia (R$/h)</label>
-          <input type="number" step="0.01" id="entry-rate" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Valor da Hora neste dia (¥/h)</label>
+          <input type="number" step="1" id="entry-rate" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold font-mono">
         </div>
 
         <!-- Real-time calculation preview in modal -->
         <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs space-y-1.5">
           <div class="flex justify-between">
-            <span class="text-slate-500">Horas Normais (8h-17h):</span>
-            <span id="modal-preview-normal" class="font-bold text-emerald-600 font-mono">0.0h</span>
+            <span class="text-slate-500">Horas Físicas Trabalhadas:</span>
+            <span id="modal-preview-worked-hours" class="font-bold text-slate-800 dark:text-slate-200 font-mono">8.0h</span>
           </div>
           <div class="flex justify-between">
             <span class="text-slate-500">Horas Extras (< 8h / > 17h):</span>
             <span id="modal-preview-extra" class="font-bold text-amber-500 font-mono">0.0h</span>
           </div>
           <div class="pt-1 border-t border-slate-200 dark:border-slate-700 flex justify-between font-bold">
-            <span class="text-slate-800 dark:text-slate-100">Total do Dia:</span>
-            <span id="modal-preview-total" class="text-brand-600 dark:text-brand-400 font-mono">R$ 0,00</span>
+            <span class="text-slate-800 dark:text-slate-100">Total a Somar no Salário:</span>
+            <span id="modal-preview-total" class="text-brand-600 dark:text-brand-400 font-mono">¥ 0</span>
           </div>
         </div>
 
