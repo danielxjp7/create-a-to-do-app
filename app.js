@@ -1252,7 +1252,15 @@
     });
 
     const el = document.getElementById('header-month-earnings');
-    if (el) el.textContent = formatCurrency(sum);
+    if (el) {
+      if (state.salaryHidden) {
+        el.textContent = '¥ ••••••';
+        el.title = 'Salário oculto (clique no ícone para exibir)';
+      } else {
+        el.textContent = formatCurrency(sum);
+        el.title = 'Salário a receber no período';
+      }
+    }
 
     const rateDisplay = document.getElementById('header-rate-display');
     if (rateDisplay) rateDisplay.textContent = `${formatCurrency(state.config.hourlyRate)}/h`;
@@ -1261,6 +1269,32 @@
     if (periodBtn) {
       periodBtn.textContent = `${formatDateBR(state.calculationPeriod.startDate)} a ${formatDateBR(state.calculationPeriod.endDate)}`;
     }
+  }
+
+  function toggleSalaryVisibility() {
+    state.salaryHidden = !state.salaryHidden;
+    try {
+      localStorage.setItem('pontogps_salary_hidden', JSON.stringify(state.salaryHidden));
+    } catch (e) {
+      // storage optional
+    }
+    updateSalaryVisibilityUI();
+    updateHeaderEarnings();
+    showToast(state.salaryHidden ? 'Salário no topo ocultado 🔒' : 'Salário no topo visível 👁️');
+  }
+
+  function updateSalaryVisibilityUI() {
+    const icon = document.getElementById('salary-visibility-icon');
+    const btn = document.getElementById('toggle-salary-visibility-btn');
+    if (!icon || !btn) return;
+    if (state.salaryHidden) {
+      icon.setAttribute('data-lucide', 'eye-off');
+      btn.title = 'Mostrar valor do salário';
+    } else {
+      icon.setAttribute('data-lucide', 'eye');
+      btn.title = 'Ocultar valor do salário';
+    }
+    if (window.lucide) lucide.createIcons();
   }
 
   // --- Renderização Mestra de Todas as Telas ---
@@ -1574,6 +1608,15 @@
       pStart.focus();
     });
 
+    // Alternar visibilidade do salário no topo
+    const salaryToggleBtn = document.getElementById('toggle-salary-visibility-btn');
+    if (salaryToggleBtn) {
+      salaryToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleSalaryVisibility();
+      });
+    }
+
     // Presets de Período
     document.getElementById('preset-month-btn').addEventListener('click', () => {
       state.calculationPeriod = calculatePeriodRange('last');
@@ -1804,6 +1847,7 @@
     updateLiveClock();
     setInterval(updateLiveClock, 1000);
     renderAllViews();
+    updateSalaryVisibilityUI();
     setupEventListeners();
 
     const feriasDate = document.getElementById('ferias-data-inicio');

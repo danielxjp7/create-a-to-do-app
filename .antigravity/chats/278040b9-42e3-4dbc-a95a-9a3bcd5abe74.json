@@ -88,6 +88,18 @@
       "created_at": "2026-11-23T10:54:54.864Z",
       "sender": "ios",
       "is_cancelled": false
+    },
+    {
+      "id": "e9e08b1a-4153-4d31-bf2d-52a665b7dabd",
+      "role": "agent",
+      "content": "A opção de **mostrar e esconder o valor do salário a receber** no topo da página principal foi adicionada!\n\n### 🌐 Acesse a Aplicação\n👉 **[Abrir o PontoGPS Pro](https://antigravity.luch.dev/site/ad454f75-5590-44ca-9a5b-676d79599810/cd6e803257365647941db4be/)**\n\n---\n\n### 👁️ Como funciona:\n- **Botão de Olho**: Ao lado do texto *\"Salário a Receber\"*, no cartão superior, foi inserido o botão de alternância com ícones dinâmicos (`eye` / `eye-off`).\n- **Modo Privacidade**:\n  - Quando ativado, o valor é mascarado para **`¥ ••••••`**.\n  - Ao clicar novamente, o valor acumulado em ienes é revelado.\n- **Persistência Automática**: A sua preferência (visível ou oculto) é salva no navegador, permanecendo ativa mesmo após recarregar a página.\n\n### 📁 Arquivos Modificados\n- [index.html](file:///home/agent/workspace/index.html) — Adição do botão interativo de visibilidade com ícone no card de salário do topo.\n- [app.js](file:///home/agent/workspace/app.js) — Implementação da alternância de estado de privacidade (`state.salaryHidden`), máscara `¥ ••••••`, troca de ícones Lucide e persistência no LocalStorage.",
+      "status": "completed",
+      "model": "gemini-3.8-flash-high",
+      "client_type": "gemini-bridge",
+      "parent_message_id": "db134fdc-6e07-4535-8880-3567ea7e3d53",
+      "created_at": "2026-11-23T10:57:36.653Z",
+      "sender": "macOS",
+      "is_cancelled": false
     }
   ]
 }
