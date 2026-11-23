@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="pt-BR" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TaskFlow — Elegant & Powerful Task Manager</title>
-  
-  <!-- Google Fonts: Inter -->
+  <title>PontoGPS Pro — Controle de Ponto, Horas Extras e Férias</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -19,21 +19,21 @@
         extend: {
           fontFamily: {
             sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
-            body: ['Inter', 'system-ui', 'sans-serif']
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
           },
           colors: {
             brand: {
-              50: '#f0f5ff',
-              100: '#e0ecff',
-              200: '#c7dcfe',
-              300: '#a0c4fd',
-              400: '#71a2fa',
-              500: '#437df6',
-              600: '#2b5ff0',
-              700: '#1e48db',
-              800: '#1e3cb2',
-              900: '#1d358c',
-              950: '#142255',
+              50: '#eef6ff',
+              100: '#d9eaff',
+              200: '#bbd9fe',
+              300: '#8cc2fd',
+              400: '#56a0fa',
+              500: '#2f7df6',
+              600: '#1a5ee9',
+              700: '#1449c7',
+              800: '#163ea1',
+              900: '#17377f',
+              950: '#11224e',
             }
           }
         }
@@ -41,379 +41,803 @@
     };
   </script>
 
+  <!-- Leaflet CSS & JS for Interactive GPS Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
+
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
   <!-- Custom Styles -->
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans transition-colors duration-200 antialiased selection:bg-brand-500 selection:text-white">
+<body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white transition-colors duration-200">
 
-  <!-- Main Container -->
+  <!-- Mobile Navigation Header -->
+  <div class="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+        <i data-lucide="map-pin" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base text-slate-900 dark:text-white leading-tight">PontoGPS Pro</h1>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400">Ponto, Extras & Férias</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button id="mobile-theme-toggle" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+        <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
+      </button>
+      <button id="mobile-menu-btn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </div>
+
   <div class="flex h-screen overflow-hidden">
 
-    <!-- Mobile Sidebar Backdrop -->
-    <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 hidden lg:hidden transition-opacity duration-300"></div>
+    <!-- Mobile Drawer Backdrop -->
+    <div id="drawer-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity"></div>
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/80 flex flex-col transition-transform duration-300 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-auto">
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-transform duration-300 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-auto">
       
-      <!-- Brand & User Header -->
-      <div class="p-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+      <!-- Brand Header -->
+      <div class="p-5 hidden lg:flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
-            <i data-lucide="check-check" class="w-5 h-5"></i>
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
+            <i data-lucide="map-pin" class="w-5 h-5"></i>
           </div>
           <div>
-            <h1 class="font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
-              TaskFlow
-              <span class="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800">Pro</span>
-            </h1>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Master your day</p>
-          </div>
-        </div>
-
-        <button id="close-sidebar-btn" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <!-- Quick Action / New Task Button in Sidebar -->
-      <div class="px-4 pt-4 pb-2">
-        <button id="sidebar-new-task-btn" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white font-medium text-sm shadow-md shadow-brand-600/20 hover:shadow-brand-600/30 transition-all">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i>
-          <span>Create Task</span>
-          <span class="ml-auto text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono">N</span>
-        </button>
-      </div>
-
-      <!-- Navigation Views -->
-      <div class="flex-1 overflow-y-auto px-3 py-2 space-y-6 custom-scrollbar">
-        <!-- Views Section -->
-        <div>
-          <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">Views</p>
-          <nav class="space-y-1">
-            <button data-view="all" class="nav-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all group active-nav">
-              <span class="flex items-center gap-3">
-                <i data-lucide="inbox" class="w-4 h-4 text-brand-600 dark:text-brand-400"></i>
-                <span>All Tasks</span>
-              </span>
-              <span id="count-all" class="count-badge text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">0</span>
-            </button>
-
-            <button data-view="today" class="nav-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all group text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100">
-              <span class="flex items-center gap-3">
-                <i data-lucide="sun" class="w-4 h-4 text-amber-500"></i>
-                <span>Today</span>
-              </span>
-              <span id="count-today" class="count-badge text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">0</span>
-            </button>
-
-            <button data-view="upcoming" class="nav-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all group text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100">
-              <span class="flex items-center gap-3">
-                <i data-lucide="calendar" class="w-4 h-4 text-emerald-500"></i>
-                <span>Upcoming</span>
-              </span>
-              <span id="count-upcoming" class="count-badge text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">0</span>
-            </button>
-
-            <button data-view="completed" class="nav-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all group text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100">
-              <span class="flex items-center gap-3">
-                <i data-lucide="check-circle-2" class="w-4 h-4 text-indigo-500"></i>
-                <span>Completed</span>
-              </span>
-              <span id="count-completed" class="count-badge text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">0</span>
-            </button>
-          </nav>
-        </div>
-
-        <!-- Categories Section -->
-        <div>
-          <div class="px-3 flex items-center justify-between mb-1.5">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Categories</p>
-            <button id="add-category-btn" class="p-1 rounded-md text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Add category">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-          <nav id="category-list" class="space-y-1">
-            <!-- Dynamically populated categories -->
-          </nav>
-        </div>
-
-        <!-- Priorities Section -->
-        <div>
-          <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">Priority</p>
-          <nav class="space-y-1">
-            <button data-priority-filter="urgent" class="priority-nav-item w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
-              <span class="flex items-center gap-2.5">
-                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-rose-500/20"></span>
-                <span>Urgent</span>
-              </span>
-              <span id="count-urgent" class="text-[11px] text-slate-400">0</span>
-            </button>
-            <button data-priority-filter="high" class="priority-nav-item w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
-              <span class="flex items-center gap-2.5">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-500/20"></span>
-                <span>High</span>
-              </span>
-              <span id="count-high" class="text-[11px] text-slate-400">0</span>
-            </button>
-            <button data-priority-filter="medium" class="priority-nav-item w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
-              <span class="flex items-center gap-2.5">
-                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-blue-500/20"></span>
-                <span>Medium</span>
-              </span>
-              <span id="count-medium" class="text-[11px] text-slate-400">0</span>
-            </button>
-            <button data-priority-filter="low" class="priority-nav-item w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
-              <span class="flex items-center gap-2.5">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20"></span>
-                <span>Low</span>
-              </span>
-              <span id="count-low" class="text-[11px] text-slate-400">0</span>
-            </button>
-          </nav>
-        </div>
-      </div>
-
-      <!-- Footer: Theme Toggle, Sound Toggle, Storage & Import/Export -->
-      <div class="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-        <div class="flex items-center justify-between px-2 py-1">
-          <div class="flex items-center gap-1">
-            <!-- Theme Toggle -->
-            <button id="theme-toggle-btn" class="p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors" title="Toggle dark/light mode">
-              <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
-              <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
-            </button>
-
-            <!-- Sound Toggle -->
-            <button id="sound-toggle-btn" class="p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors" title="Toggle audio chime">
-              <i data-lucide="volume-2" id="sound-icon" class="w-4 h-4"></i>
-            </button>
-          </div>
-
-          <!-- Data Menu Button -->
-          <div class="relative">
-            <button id="data-menu-btn" class="p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors" title="Data & Settings">
-              <i data-lucide="settings" class="w-4 h-4"></i>
-            </button>
-            <div id="data-dropdown" class="hidden absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-50 text-xs">
-              <button id="export-data-btn" class="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
-                <i data-lucide="download" class="w-3.5 h-3.5 text-slate-400"></i>
-                <span>Export Backup (JSON)</span>
-              </button>
-              <label class="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer">
-                <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-400"></i>
-                <span>Import Backup</span>
-                <input type="file" id="import-file-input" accept=".json" class="hidden">
-              </label>
-              <div class="my-1 border-t border-slate-100 dark:border-slate-700"></div>
-              <button id="clear-completed-btn" class="w-full text-left px-3 py-2 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center gap-2">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                <span>Clear Completed</span>
-              </button>
+            <div class="flex items-center gap-1.5">
+              <h1 class="font-extrabold text-base text-slate-900 dark:text-white tracking-tight">PontoGPS</h1>
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800">PRO</span>
             </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Jornada & Férias CLT</p>
           </div>
         </div>
+      </div>
+
+      <!-- Quick GPS Status Widget in Sidebar -->
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Status do GPS</span>
+          <span id="sidebar-gps-indicator" class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-500">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span>Buscando...</span>
+          </span>
+        </div>
+        <div class="text-xs text-slate-600 dark:text-slate-300 font-medium truncate" id="sidebar-gps-distance">
+          Distância do trabalho: <span class="font-bold">--</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+        <p class="px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Navegação Principal</p>
+
+        <button data-tab="ponto" class="tab-btn active-tab w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all">
+          <i data-lucide="timer" class="w-4 h-4 text-brand-600 dark:text-brand-400"></i>
+          <span>Bater Ponto & GPS</span>
+        </button>
+
+        <button data-tab="historico" class="tab-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+          <span class="flex items-center gap-3">
+            <i data-lucide="calendar-check" class="w-4 h-4 text-emerald-500"></i>
+            <span>Histórico de Horas</span>
+          </span>
+          <span id="tab-count-historico" class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-medium">0</span>
+        </button>
+
+        <button data-tab="ferias" class="tab-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+          <span class="flex items-center gap-3">
+            <i data-lucide="palmtree" class="w-4 h-4 text-amber-500"></i>
+            <span>Férias Remuneradas</span>
+          </span>
+          <span id="tab-count-ferias" class="text-xs px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-medium">1/3</span>
+        </button>
+
+        <button data-tab="relatorios" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+          <i data-lucide="calculator" class="w-4 h-4 text-indigo-500"></i>
+          <span>Relatório & Holerite</span>
+        </button>
+
+        <button data-tab="configuracoes" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+          <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>
+          <span>Configurações & GPS</span>
+        </button>
+
+        <!-- Regra de Hora Extra Banner -->
+        <div class="mt-6 p-3.5 rounded-2xl bg-brand-50/80 dark:bg-brand-950/40 border border-brand-200/80 dark:border-brand-800/80 text-xs text-brand-900 dark:text-brand-200">
+          <div class="flex items-center gap-1.5 font-bold mb-1">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i>
+            <span>Regra de Horário</span>
+          </div>
+          <p class="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+            • <strong>08h00 às 17h00</strong>: Horário Normal<br>
+            • <strong>Antes das 08h ou após 17h</strong>: Hora Extra (50% ou 100%)
+          </p>
+        </div>
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="p-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+        <button id="theme-toggle-btn" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Alternar tema escuro/claro">
+          <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+          <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
+        </button>
+
+        <div class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+          v2.0 GPS Local
+        </div>
+
+        <button id="export-backup-btn" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Exportar backup dos dados">
+          <i data-lucide="download" class="w-4 h-4"></i>
+        </button>
       </div>
     </aside>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-white dark:bg-slate-950">
+    <!-- Main Workspace Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50/50 dark:bg-slate-950">
       
-      <!-- Top Navigation & Search Header -->
-      <header class="h-16 px-4 lg:px-8 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-20">
+      <!-- Top Header Bar with Live Clock & Quick Earnings -->
+      <header class="h-16 px-4 lg:px-8 bg-white dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800/80 flex items-center justify-between gap-4 sticky top-0 z-20">
         
-        <div class="flex items-center gap-3 flex-1 max-w-xl">
-          <!-- Mobile Toggle Sidebar -->
-          <button id="open-sidebar-btn" class="lg:hidden p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-            <i data-lucide="menu" class="w-5 h-5"></i>
-          </button>
-
-          <!-- Search Bar -->
-          <div class="relative flex-1">
-            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-            <input 
-              type="text" 
-              id="search-input" 
-              placeholder="Search tasks, notes, or tags... (Press / to search)" 
-              class="w-full pl-10 pr-9 py-2 bg-slate-100/80 dark:bg-slate-900 border border-transparent dark:border-slate-800/80 rounded-xl text-sm placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-slate-900 transition-all"
-            >
-            <button id="clear-search-btn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-              <i data-lucide="x" class="w-3.5 h-3.5"></i>
-            </button>
+        <div class="flex items-center gap-3">
+          <div class="text-left">
+            <div id="live-clock" class="text-lg sm:text-xl font-bold font-mono text-slate-900 dark:text-white tracking-tight">00:00:00</div>
+            <div id="live-date" class="text-[11px] text-slate-500 dark:text-slate-400 capitalize">-- de -- de ----</div>
           </div>
         </div>
 
-        <!-- Header Actions: Sort & Add Task Button -->
-        <div class="flex items-center gap-2 sm:gap-3">
-          
-          <!-- Sort Dropdown -->
-          <div class="relative">
-            <button id="sort-menu-btn" class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors shadow-sm">
-              <i data-lucide="arrow-up-down" class="w-3.5 h-3.5 text-slate-400"></i>
-              <span id="current-sort-label" class="hidden sm:inline">Sort: Due Date</span>
-              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
-            </button>
-            <div id="sort-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-50 text-xs">
-              <button data-sort="dueDate" class="sort-option w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between font-medium text-brand-600 dark:text-brand-400">
-                <span>Due Date (Earliest)</span>
-                <i data-lucide="check" class="w-3.5 h-3.5"></i>
-              </button>
-              <button data-sort="priority" class="sort-option w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between">
-                <span>Priority (Urgent first)</span>
-              </button>
-              <button data-sort="createdAt" class="sort-option w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between">
-                <span>Created Date (Newest)</span>
-              </button>
-              <button data-sort="alphabetical" class="sort-option w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between">
-                <span>Task Name (A-Z)</span>
-              </button>
+        <!-- Quick Summary Badges -->
+        <div class="flex items-center gap-2 sm:gap-4">
+          <!-- Rate Badge -->
+          <div class="hidden sm:flex flex-col text-right">
+            <span class="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Valor Hora</span>
+            <span id="header-rate-display" class="text-xs font-bold text-slate-800 dark:text-slate-200">R$ 25,00/h</span>
+          </div>
+
+          <!-- Month Estimated Total -->
+          <div class="bg-brand-50 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/60 px-3 py-1.5 rounded-xl flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white">
+              <i data-lucide="wallet" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <span class="block text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">Total do Mês</span>
+              <span id="header-month-earnings" class="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">R$ 0,00</span>
             </div>
           </div>
 
-          <!-- Quick Add Button -->
-          <button id="header-add-task-btn" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-medium text-xs sm:text-sm shadow-md shadow-brand-600/25 transition-all">
-            <i data-lucide="plus" class="w-4 h-4"></i>
-            <span class="hidden sm:inline">Add Task</span>
+          <!-- New Register Manual Button -->
+          <button id="open-manual-entry-btn" class="flex items-center gap-1.5 px-3 py-2 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-semibold text-xs rounded-xl shadow-md shadow-brand-600/20 transition-all">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Lançar Registro</span>
           </button>
         </div>
       </header>
 
-      <!-- Scrollable Main View Container -->
-      <div class="flex-1 overflow-y-auto px-4 lg:px-8 py-6 custom-scrollbar" id="main-scroll-container">
-        
-        <div class="max-w-4xl mx-auto space-y-6">
+      <!-- Dynamic Tab Content Views Container -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar" id="content-scroll-container">
+        <div class="max-w-6xl mx-auto space-y-6">
 
-          <!-- View Header & Stats Overview -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div class="flex items-center gap-2.5">
-                <h2 id="view-title" class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">All Tasks</h2>
-                <span id="active-filter-badge" class="hidden text-xs font-medium px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800"></span>
-              </div>
-              <p id="view-subtitle" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Stay organized and get things done effortlessly</p>
-            </div>
-
-            <!-- Productivity Bar -->
-            <div class="flex items-center gap-3 bg-slate-100/70 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 px-4 py-2.5 rounded-2xl">
-              <div class="relative w-10 h-10 flex items-center justify-center">
-                <svg class="w-10 h-10 transform -rotate-90">
-                  <circle cx="20" cy="20" r="16" stroke="currentColor" stroke-width="3.5" class="text-slate-200 dark:text-slate-800" fill="transparent" />
-                  <circle id="stat-progress-ring" cx="20" cy="20" r="16" stroke="currentColor" stroke-width="3.5" stroke-dasharray="100" stroke-dashoffset="100" stroke-linecap="round" class="text-brand-600 dark:text-brand-400 transition-all duration-700" fill="transparent" />
-                </svg>
-                <span id="stat-percent" class="absolute text-[11px] font-bold text-slate-800 dark:text-slate-200">0%</span>
-              </div>
-              <div class="text-left">
-                <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  <span id="stat-completed-count">0</span> of <span id="stat-total-count">0</span> done
+          <!-- ================= TAB 1: PONTO & GPS ================= -->
+          <div id="tab-ponto" class="tab-content space-y-6">
+            
+            <!-- GPS Smart Arrival Detection Alert Banner -->
+            <div id="arrival-alert-banner" class="hidden p-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-bounce-subtle">
+              <div class="flex items-start sm:items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <i data-lucide="bell-ring" class="w-5 h-5 text-white"></i>
                 </div>
-                <p id="stat-encouragement" class="text-[11px] text-slate-400 dark:text-slate-500">Ready to make progress?</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Inline Task Input Card -->
-          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-2 sm:p-2.5 shadow-sm hover:shadow-md transition-shadow">
-            <form id="quick-add-form" class="space-y-2">
-              <div class="flex items-center gap-2">
-                <div class="p-2 text-brand-600 dark:text-brand-400">
-                  <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                <div>
+                  <h3 class="font-bold text-sm sm:text-base leading-tight">Você chegou ao local de trabalho!</h3>
+                  <p id="arrival-suggestion-text" class="text-xs text-emerald-50 mt-0.5">
+                    Detectamos sua localização. Horário de início mais provável: <strong>07:50</strong> (com 10min de hora extra matutina).
+                  </p>
                 </div>
-                <input 
-                  type="text" 
-                  id="quick-task-title" 
-                  placeholder="What needs to be done? Press Enter to add..." 
-                  class="flex-1 bg-transparent text-sm sm:text-base text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
-                  autocomplete="off"
-                >
-                <button 
-                  type="submit" 
-                  class="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-medium text-xs sm:text-sm transition-all shadow-sm flex items-center gap-1.5"
-                >
-                  <span>Add</span>
-                  <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </div>
+              <div class="flex items-center gap-2 self-end md:self-auto shrink-0">
+                <button id="dismiss-arrival-btn" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-medium transition-colors">
+                  Ignorar
+                </button>
+                <button id="confirm-arrival-btn" class="px-4 py-1.5 rounded-xl bg-white text-emerald-700 hover:bg-emerald-50 text-xs font-bold shadow-md transition-all flex items-center gap-1.5">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                  <span>Registrar Chegada</span>
                 </button>
               </div>
+            </div>
 
-              <!-- Quick options bar (Category, Priority, Due Date) -->
-              <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 px-2 text-xs">
-                <!-- Quick Category -->
-                <div class="flex items-center gap-1.5">
-                  <span class="text-slate-400 text-[11px]">Category:</span>
-                  <select id="quick-task-category" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-1 px-2 rounded-lg border-0 focus:ring-1 focus:ring-brand-500 text-xs">
-                    <!-- Populated dynamically -->
-                  </select>
+            <!-- Current Shift Card & Quick Bater Ponto -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              <!-- Left: Bater Ponto Principal Card -->
+              <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="radio" class="w-5 h-5 text-brand-600"></i>
+                        <span>Registro de Jornada Hoje</span>
+                      </h2>
+                      <p class="text-xs text-slate-500 dark:text-slate-400">Entrada, intervalos, saída e cálculo automático de extras</p>
+                    </div>
+
+                    <!-- Geolocation Match Badge -->
+                    <div id="ponto-geofence-badge" class="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                      <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                      <span>Verificando GPS...</span>
+                    </div>
+                  </div>
+
+                  <!-- Today's Live Clock In / Out Stepper -->
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
+                    <!-- Entrada -->
+                    <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-center">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">1. Entrada</span>
+                      <div id="today-entry-time" class="text-base sm:text-lg font-extrabold font-mono text-slate-800 dark:text-slate-200 mt-1">--:--</div>
+                      <span id="today-entry-tag" class="inline-block mt-1 text-[10px] font-semibold text-slate-400">Não registrada</span>
+                    </div>
+
+                    <!-- Início Almoço -->
+                    <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-center">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">2. Almoço Saída</span>
+                      <div id="today-lunch-start-time" class="text-base sm:text-lg font-extrabold font-mono text-slate-800 dark:text-slate-200 mt-1">12:00</div>
+                      <span class="inline-block mt-1 text-[10px] font-medium text-slate-400">Intervalo 1h</span>
+                    </div>
+
+                    <!-- Fim Almoço -->
+                    <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-center">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">3. Almoço Volta</span>
+                      <div id="today-lunch-end-time" class="text-base sm:text-lg font-extrabold font-mono text-slate-800 dark:text-slate-200 mt-1">13:00</div>
+                      <span class="inline-block mt-1 text-[10px] font-medium text-slate-400">Retorno</span>
+                    </div>
+
+                    <!-- Saída -->
+                    <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-center">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">4. Saída</span>
+                      <div id="today-exit-time" class="text-base sm:text-lg font-extrabold font-mono text-slate-800 dark:text-slate-200 mt-1">--:--</div>
+                      <span id="today-exit-tag" class="inline-block mt-1 text-[10px] font-semibold text-slate-400">Em andamento</span>
+                    </div>
+                  </div>
+
+                  <!-- Live Day Calculation Breakdown -->
+                  <div class="p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/60 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span class="text-slate-400 font-medium">Horas Normais:</span>
+                      <div id="today-calc-normal" class="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">0.0h (R$ 0,00)</div>
+                    </div>
+                    <div>
+                      <span class="text-slate-400 font-medium">Extras Manhã (< 8h):</span>
+                      <div id="today-calc-extra-morning" class="text-sm font-bold text-amber-600 dark:text-amber-400 font-mono">0.0h</div>
+                    </div>
+                    <div>
+                      <span class="text-slate-400 font-medium">Extras Tarde (> 17h):</span>
+                      <div id="today-calc-extra-evening" class="text-sm font-bold text-amber-600 dark:text-amber-400 font-mono">0.0h</div>
+                    </div>
+                    <div>
+                      <span class="text-slate-400 font-medium">Ganho Total do Dia:</span>
+                      <div id="today-calc-total-val" class="text-sm font-extrabold text-brand-600 dark:text-brand-400 font-mono">R$ 0,00</div>
+                    </div>
+                  </div>
                 </div>
 
-                <!-- Quick Priority -->
-                <div class="flex items-center gap-1.5">
-                  <span class="text-slate-400 text-[11px]">Priority:</span>
-                  <select id="quick-task-priority" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-1 px-2 rounded-lg border-0 focus:ring-1 focus:ring-brand-500 text-xs">
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
+                <!-- Action Buttons: Bater Entrada / Bater Saída -->
+                <div class="mt-6 flex flex-wrap items-center gap-3">
+                  <button id="clock-in-btn" class="flex-1 min-w-[140px] py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all">
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    <span>Registrar Entrada</span>
+                  </button>
 
-                <!-- Quick Due Date -->
-                <div class="flex items-center gap-1.5">
-                  <span class="text-slate-400 text-[11px]">Due:</span>
-                  <input type="date" id="quick-task-due" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-1 px-2 rounded-lg border-0 focus:ring-1 focus:ring-brand-500 text-xs">
-                </div>
+                  <button id="clock-out-btn" class="flex-1 min-w-[140px] py-3 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-rose-600/25 flex items-center justify-center gap-2 transition-all">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span>Registrar Saída</span>
+                  </button>
 
-                <!-- More details button -->
-                <button type="button" id="expand-to-modal-btn" class="ml-auto text-brand-600 dark:text-brand-400 hover:underline text-xs flex items-center gap-1">
-                  <i data-lucide="maximize-2" class="w-3 h-3"></i>
-                  <span>Detailed Form</span>
-                </button>
+                  <button id="edit-today-details-btn" class="p-3 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors" title="Ajustar horários de hoje">
+                    <i data-lucide="sliders" class="w-4 h-4"></i>
+                  </button>
+                </div>
               </div>
-            </form>
-          </div>
 
-          <!-- Filter Pills Bar (All, Active, Completed, Priority filter reset) -->
-          <div class="flex items-center justify-between gap-2 text-xs">
-            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full custom-scrollbar">
-              <button data-status-filter="all" class="status-pill active-pill px-3 py-1 rounded-full font-medium transition-colors">
-                All
-              </button>
-              <button data-status-filter="active" class="status-pill px-3 py-1 rounded-full font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors">
-                Active
-              </button>
-              <button data-status-filter="completed" class="status-pill px-3 py-1 rounded-full font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors">
-                Completed
-              </button>
+              <!-- Right: GPS Live Geofence & Simulator Card -->
+              <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <i data-lucide="navigation" class="w-4 h-4 text-brand-600"></i>
+                      <span>Radar de Proximidade GPS</span>
+                    </h3>
+                    <button id="refresh-gps-btn" class="p-1 text-slate-400 hover:text-brand-600 transition-colors" title="Atualizar GPS">
+                      <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
+                    Compara sua posição ao vivo com o raio permitido de <strong id="card-radius-display">150m</strong> do seu local de trabalho.
+                  </p>
+
+                  <!-- Status Box -->
+                  <div id="gps-status-box" class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-500">Local de Trabalho:</span>
+                      <span id="gps-target-name" class="font-semibold text-slate-800 dark:text-slate-200">Sede da Empresa</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-500">Distância Atual:</span>
+                      <span id="gps-current-distance" class="font-bold text-slate-800 dark:text-slate-100">Calculando...</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-500">Dentro do Raio:</span>
+                      <span id="gps-inside-status" class="font-bold text-slate-400">--</span>
+                    </div>
+                  </div>
+
+                  <!-- Probable Arrival Time Auto-Calculation Info -->
+                  <div class="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-amber-300">
+                    <div class="font-bold flex items-center gap-1 mb-1">
+                      <i data-lucide="sparkles" class="w-3 h-3 text-amber-500"></i>
+                      <span>Início Mais Provável</span>
+                    </div>
+                    <span>Se você chegar antes das 08h00, o sistema já calcula automaticamente a hora de início exata e a fração de hora extra correspondente.</span>
+                  </div>
+                </div>
+
+                <!-- Simulation Tools (Great for testing in browser without moving!) -->
+                <div class="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  <span class="text-[10px] uppercase font-bold text-slate-400">Ferramenta de Teste GPS:</span>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button id="sim-arrive-btn" class="py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors flex items-center justify-center gap-1">
+                      <i data-lucide="map-pin-check" class="w-3.5 h-3.5 text-emerald-500"></i>
+                      <span>Simular Chegada</span>
+                    </button>
+                    <button id="sim-leave-btn" class="py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors flex items-center justify-center gap-1">
+                      <i data-lucide="map-pin-off" class="w-3.5 h-3.5 text-slate-400"></i>
+                      <span>Simular Saída</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div id="filter-reset-container" class="hidden">
-              <button id="clear-all-filters-btn" class="text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1">
-                <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
-                <span>Reset filters</span>
-              </button>
+            <!-- Leaflet Interactive Workplace Map -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
+              <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div>
+                  <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="map" class="w-4 h-4 text-brand-600"></i>
+                    <span>Mapa de Localização do Trabalho & Geofence</span>
+                  </h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">
+                    O círculo azul demarca o raio onde o ponto é reconhecido automaticamente. Você pode arrastar o pin ou clicar no mapa para redefinir.
+                  </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button id="center-map-work-btn" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1">
+                    <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                    <span>Centralizar no Trabalho</span>
+                  </button>
+                  <button id="use-current-location-btn" class="px-3 py-1.5 rounded-xl bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900 border border-brand-200 dark:border-brand-800 text-xs font-semibold transition-colors flex items-center gap-1">
+                    <i data-lucide="locate-fixed" class="w-3.5 h-3.5"></i>
+                    <span>Definir Posição Atual</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Map container -->
+              <div id="workplace-map" class="w-full h-72 rounded-2xl z-10 border border-slate-200 dark:border-slate-800 overflow-hidden"></div>
             </div>
+
           </div>
 
-          <!-- Task List Container -->
-          <div id="task-list" class="space-y-2.5">
-            <!-- Dynamic task items -->
+          <!-- ================= TAB 2: HISTÓRICO DE HORAS ================= -->
+          <div id="tab-historico" class="tab-content hidden space-y-6">
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="calendar-check" class="w-5 h-5 text-emerald-600"></i>
+                    <span>Histórico Detalhado de Jornada</span>
+                  </h2>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Todos os dias trabalhados com decomposição precisa de horas normais e horas extras
+                  </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button id="history-add-entry-btn" class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Novo Lançamento</span>
+                  </button>
+                  <button id="export-csv-btn" class="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600"></i>
+                    <span>Exportar CSV</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Month / Filter Controls -->
+              <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div class="flex items-center gap-2">
+                  <label class="text-xs font-semibold text-slate-500">Filtrar Mês:</label>
+                  <input type="month" id="history-month-filter" class="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium">
+                </div>
+
+                <div class="flex items-center gap-3 text-xs">
+                  <span class="text-slate-500">Total do Filtro:</span>
+                  <span id="history-filter-total-hours" class="font-bold text-slate-800 dark:text-slate-200 font-mono">0.0h</span>
+                  <span class="text-slate-300">|</span>
+                  <span id="history-filter-total-value" class="font-extrabold text-brand-600 dark:text-brand-400 font-mono">R$ 0,00</span>
+                </div>
+              </div>
+
+              <!-- Entries Table Container -->
+              <div class="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                <table class="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+                  <thead class="bg-slate-50 dark:bg-slate-800/80 uppercase text-[10px] font-bold text-slate-400 dark:text-slate-500 border-b border-slate-200/80 dark:border-slate-800">
+                    <tr>
+                      <th class="py-3 px-4">Data</th>
+                      <th class="py-3 px-3">Entrada</th>
+                      <th class="py-3 px-3">Intervalo</th>
+                      <th class="py-3 px-3">Saída</th>
+                      <th class="py-3 px-3 text-center">Horas Normais</th>
+                      <th class="py-3 px-3 text-center">Horas Extras</th>
+                      <th class="py-3 px-3">Valor / Hora</th>
+                      <th class="py-3 px-4 text-right">Total (R$)</th>
+                      <th class="py-3 px-3 text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="history-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
+                    <!-- Dynamic Rows populated by JS -->
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Empty state for history -->
+              <div id="history-empty-state" class="hidden text-center py-12">
+                <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                  <i data-lucide="calendar-x" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-slate-800 dark:text-slate-200 text-sm">Nenhum registro para este período</h4>
+                <p class="text-xs text-slate-500 mt-1">Bata o ponto na aba principal ou faça um lançamento manual.</p>
+              </div>
+            </div>
+
           </div>
 
-          <!-- Empty State (Shown when no tasks match) -->
-          <div id="empty-state" class="hidden text-center py-16 px-4">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-slate-400 dark:text-slate-500">
-              <i data-lucide="sparkles" class="w-8 h-8"></i>
+          <!-- ================= TAB 3: FÉRIAS REMUNERADAS ================= -->
+          <div id="tab-ferias" class="tab-content hidden space-y-6">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              <!-- Left: Calculadora de Férias Remuneradas e Adicional 1/3 CLT -->
+              <div class="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+                <div class="pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="palmtree" class="w-5 h-5 text-amber-500"></i>
+                    <span>Cálculo de Férias CLT</span>
+                  </h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Calcula dias gozados + Adicional Constitucional de 1/3 (Art. 7º, XVII CF/88)
+                  </p>
+                </div>
+
+                <form id="ferias-calc-form" class="space-y-3.5">
+                  <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Salário Base Mensal (R$)</label>
+                    <input type="number" step="0.01" id="ferias-salario-input" value="4400.00" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Data Início</label>
+                      <input type="date" id="ferias-data-inicio" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium">
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Dias Gozados</label>
+                      <input type="number" id="ferias-dias-input" min="5" max="30" value="30" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Vender 10 dias (Abono Pecuniário)?</label>
+                    <select id="ferias-abono-select" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium">
+                      <option value="nao">Não (Gozar dias selecionados)</option>
+                      <option value="sim">Sim (Converter 1/3 em dinheiro)</option>
+                    </select>
+                  </div>
+
+                  <!-- Live Calculation Box -->
+                  <div class="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 text-xs space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-amber-800 dark:text-amber-300">Valor das Férias:</span>
+                      <span id="calc-ferias-base" class="font-mono font-bold text-slate-900 dark:text-white">R$ 0,00</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-amber-800 dark:text-amber-300">1/3 Constitucional:</span>
+                      <span id="calc-ferias-terco" class="font-mono font-bold text-emerald-600 dark:text-emerald-400">+ R$ 0,00</span>
+                    </div>
+                    <div class="pt-2 border-t border-amber-200 dark:border-amber-800 flex items-center justify-between">
+                      <span class="font-bold text-amber-950 dark:text-amber-200">Total a Receber:</span>
+                      <span id="calc-ferias-total" class="font-mono font-extrabold text-sm text-brand-600 dark:text-brand-400">R$ 0,00</span>
+                    </div>
+                  </div>
+
+                  <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white font-bold text-xs shadow-md shadow-amber-600/25 transition-all flex items-center justify-center gap-1.5">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span>Salvar Período de Férias</span>
+                  </button>
+                </form>
+              </div>
+
+              <!-- Right: Histórico de Períodos de Férias Registrados -->
+              <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                      <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
+                      <span>Períodos de Férias Concedidos</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Histórico de saídas de férias e comprovantes de valores</p>
+                  </div>
+
+                  <div class="text-right">
+                    <span class="text-[10px] font-bold uppercase text-slate-400">Total Acumulado em Férias</span>
+                    <div id="ferias-historico-total" class="font-mono font-extrabold text-sm text-brand-600 dark:text-brand-400">R$ 0,00</div>
+                  </div>
+                </div>
+
+                <!-- Vacation list items -->
+                <div id="ferias-list-container" class="space-y-3">
+                  <!-- Dynamic cards -->
+                </div>
+
+                <div id="ferias-empty-state" class="hidden text-center py-10">
+                  <div class="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center mx-auto mb-2 text-amber-500">
+                    <i data-lucide="sun" class="w-6 h-6"></i>
+                  </div>
+                  <h4 class="font-bold text-slate-800 dark:text-slate-200 text-sm">Nenhum período de férias registrado ainda</h4>
+                  <p class="text-xs text-slate-500 mt-1">Utilize o formulário ao lado para calcular e agendar suas férias.</p>
+                </div>
+              </div>
+
             </div>
-            <h3 id="empty-title" class="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">No tasks found</h3>
-            <p id="empty-desc" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-5">
-              You're all caught up! Enjoy your free time or add a new task to stay on top of your goals.
-            </p>
-            <button id="empty-add-btn" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-xs sm:text-sm shadow-md transition-all">
-              <i data-lucide="plus" class="w-4 h-4"></i>
-              <span>Create New Task</span>
-            </button>
+
+          </div>
+
+          <!-- ================= TAB 4: RELATÓRIOS & HOLERITE ================= -->
+          <div id="tab-relatorios" class="tab-content hidden space-y-6">
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+              
+              <!-- Report Header -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-5 h-5 text-indigo-600"></i>
+                    <span>Demonstrativo Mensal & Holerite Estimado</span>
+                  </h2>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Visão consolidada de proventos: Horas Normais, Horas Extras (50%/100%) e Férias
+                  </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <input type="month" id="report-month-select" class="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+                  <button id="print-report-btn" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                    <span>Imprimir / PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Holerite Summary Card (Brazilian Standard Receipt Design) -->
+              <div id="printable-holerite" class="mt-6 bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-6">
+                
+                <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                  <div>
+                    <h3 class="font-extrabold text-base text-slate-900 dark:text-white">RECIBO DE PAGAMENTO / DEMONSTRATIVO DE HORAS</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Referência: <span id="holerite-ref-month" class="font-bold text-slate-700 dark:text-slate-300">Novembro / 2026</span></p>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-[10px] uppercase font-bold text-slate-400">Emitido por</span>
+                    <div class="text-xs font-bold text-brand-600 dark:text-brand-400">PontoGPS Pro</div>
+                  </div>
+                </div>
+
+                <!-- Breakdown Metrics -->
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700">
+                    <span class="text-[10px] font-bold uppercase text-slate-400">1. Horas Normais</span>
+                    <div id="rep-normal-hours" class="text-lg font-mono font-bold text-slate-800 dark:text-slate-100 mt-1">0.0h</div>
+                    <div id="rep-normal-val" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">R$ 0,00</div>
+                  </div>
+
+                  <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700">
+                    <span class="text-[10px] font-bold uppercase text-slate-400">2. Horas Extras (< 8h / > 17h)</span>
+                    <div id="rep-extra-hours" class="text-lg font-mono font-bold text-amber-500 mt-1">0.0h</div>
+                    <div id="rep-extra-val" class="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-0.5">R$ 0,00</div>
+                  </div>
+
+                  <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700">
+                    <span class="text-[10px] font-bold uppercase text-slate-400">3. Férias Remuneradas</span>
+                    <div id="rep-ferias-days" class="text-lg font-mono font-bold text-purple-500 mt-1">0 dias</div>
+                    <div id="rep-ferias-val" class="text-xs font-semibold text-purple-600 dark:text-purple-400 mt-0.5">R$ 0,00</div>
+                  </div>
+
+                  <div class="p-4 rounded-xl bg-brand-600 text-white">
+                    <span class="text-[10px] font-bold uppercase text-brand-200">Total Bruto Estimado</span>
+                    <div id="rep-total-earnings" class="text-xl font-mono font-extrabold mt-1">R$ 0,00</div>
+                    <div class="text-[10px] text-brand-100 mt-0.5">Proventos do Período</div>
+                  </div>
+                </div>
+
+                <!-- Holerite Itemized Table -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                  <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 dark:bg-slate-800/80 text-[10px] uppercase font-bold text-slate-500">
+                      <tr>
+                        <th class="py-2.5 px-4">Cód / Descrição</th>
+                        <th class="py-2.5 px-3">Referência</th>
+                        <th class="py-2.5 px-3">Valor Unitário</th>
+                        <th class="py-2.5 px-4 text-right">Proventos (R$)</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                      <tr>
+                        <td class="py-2.5 px-4 font-sans font-medium text-slate-800 dark:text-slate-200">001 - Horas Normais Trabalhadas</td>
+                        <td class="py-2.5 px-3" id="table-row-normal-ref">0.0h</td>
+                        <td class="py-2.5 px-3" id="table-row-normal-unit">R$ 25,00/h</td>
+                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-normal-tot">R$ 0,00</td>
+                      </tr>
+                      <tr>
+                        <td class="py-2.5 px-4 font-sans font-medium text-slate-800 dark:text-slate-200">002 - Horas Extras (50% adicional)</td>
+                        <td class="py-2.5 px-3" id="table-row-extra-ref">0.0h</td>
+                        <td class="py-2.5 px-3" id="table-row-extra-unit">R$ 37,50/h</td>
+                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-extra-tot">R$ 0,00</td>
+                      </tr>
+                      <tr>
+                        <td class="py-2.5 px-4 font-sans font-medium text-slate-800 dark:text-slate-200">003 - Férias Gozadas no Mês</td>
+                        <td class="py-2.5 px-3" id="table-row-ferias-ref">0 dias</td>
+                        <td class="py-2.5 px-3">--</td>
+                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-ferias-tot">R$ 0,00</td>
+                      </tr>
+                      <tr>
+                        <td class="py-2.5 px-4 font-sans font-medium text-slate-800 dark:text-slate-200">004 - 1/3 Constitucional de Férias</td>
+                        <td class="py-2.5 px-3">33.33%</td>
+                        <td class="py-2.5 px-3">--</td>
+                        <td class="py-2.5 px-4 text-right font-bold text-slate-800 dark:text-slate-100" id="table-row-terco-tot">R$ 0,00</td>
+                      </tr>
+                    </tbody>
+                    <tfoot class="bg-slate-50 dark:bg-slate-800/60 font-bold border-t border-slate-200 dark:border-slate-700">
+                      <tr>
+                        <td colspan="3" class="py-3 px-4 text-slate-700 dark:text-slate-300 font-sans">TOTAL GERAL ESTIMADO:</td>
+                        <td class="py-3 px-4 text-right text-brand-600 dark:text-brand-400 font-mono text-sm" id="table-row-grand-total">R$ 0,00</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- ================= TAB 5: CONFIGURAÇÕES & GPS ================= -->
+          <div id="tab-configuracoes" class="tab-content hidden space-y-6">
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6">
+              
+              <div class="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <i data-lucide="settings" class="w-5 h-5 text-brand-600"></i>
+                  <span>Configurações do Usuário & Parâmetros GPS</span>
+                </h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Ajuste o valor da sua hora, regras de hora extra e coordenadas do seu trabalho
+                </p>
+              </div>
+
+              <form id="settings-form" class="space-y-5">
+                
+                <!-- Valores e Taxas -->
+                <div>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">1. Valores & Adicionais</h3>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Valor da Hora Normal (R$/h) *</label>
+                      <input type="number" step="0.01" id="cfg-hourly-rate" value="25.00" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Adicional Hora Extra Normal (%)</label>
+                      <input type="number" id="cfg-overtime-pct" value="50" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
+                      <span class="text-[10px] text-slate-400">Padrão CLT: 50%</span>
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Salário Base Mensal Referência (R$)</label>
+                      <input type="number" step="0.01" id="cfg-monthly-salary" value="4400.00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500">
+                      <span class="text-[10px] text-slate-400">Usado para cálculo de férias</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Horário Padrão de Trabalho -->
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">2. Horário da Jornada Padrão</h3>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Início da Jornada Normal</label>
+                      <input type="time" id="cfg-start-time" value="08:00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+                      <span class="text-[10px] text-slate-400">Antes deste horário = Hora Extra</span>
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Término da Jornada Normal</label>
+                      <input type="time" id="cfg-end-time" value="17:00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+                      <span class="text-[10px] text-slate-400">Depois deste horário = Hora Extra</span>
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Intervalo Padrão Almoço (min)</label>
+                      <input type="number" id="cfg-lunch-minutes" value="60" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+                      <span class="text-[10px] text-slate-400">Ex: 60 minutos (1 hora)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- GPS do Local de Trabalho -->
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">3. Coordenadas GPS do Trabalho</h3>
+                    <button type="button" id="cfg-get-gps-btn" class="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1">
+                      <i data-lucide="locate" class="w-3.5 h-3.5"></i>
+                      <span>Capturar GPS Atual do Aparelho</span>
+                    </button>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Latitude</label>
+                      <input type="number" step="any" id="cfg-work-lat" value="-23.55052" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-semibold">
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Longitude</label>
+                      <input type="number" step="any" id="cfg-work-lng" value="-46.633308" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-semibold">
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Raio de Tolerância GPS (Metros)</label>
+                      <input type="number" id="cfg-work-radius" value="150" min="20" max="2000" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
+                      <span class="text-[10px] text-slate-400">Distância máxima para ativar chegada</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pt-4 flex items-center justify-between">
+                  <button type="button" id="cfg-reset-defaults-btn" class="text-xs font-medium text-rose-500 hover:underline">
+                    Restaurar padrões
+                  </button>
+
+                  <button type="submit" class="py-2.5 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-all flex items-center gap-1.5">
+                    <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                    <span>Salvar Configurações</span>
+                  </button>
+                </div>
+              </form>
+
+            </div>
+
           </div>
 
         </div>
@@ -422,222 +846,87 @@
 
   </div>
 
-  <!-- Task Detail / Edit Modal -->
-  <div id="task-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-200 flex flex-col max-h-[90vh]">
+  <!-- Modal: Adicionar / Editar Lançamento Manual -->
+  <div id="entry-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden transform scale-95 transition-transform flex flex-col max-h-[90vh]">
       
-      <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <h3 id="modal-title" class="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-          <i data-lucide="edit-3" class="w-5 h-5 text-brand-600 dark:text-brand-400"></i>
-          <span>Create Task</span>
+        <h3 id="entry-modal-title" class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+          <i data-lucide="clock" class="w-5 h-5 text-brand-600"></i>
+          <span>Lançar Registro de Jornada</span>
         </h3>
-        <button id="close-modal-btn" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <button id="close-entry-modal-btn" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <!-- Modal Body Form -->
-      <form id="task-form" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-        <input type="hidden" id="task-id">
+      <form id="entry-form" class="p-6 overflow-y-auto space-y-4 custom-scrollbar">
+        <input type="hidden" id="entry-id">
 
-        <!-- Title Input -->
         <div>
-          <label for="task-title-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Task Title *</label>
-          <input 
-            type="text" 
-            id="task-title-input" 
-            required 
-            placeholder="e.g., Complete project presentation" 
-            class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-slate-800 transition-colors"
-          >
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Data do Registro *</label>
+          <input type="date" id="entry-date" required class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium">
         </div>
 
-        <!-- Description / Notes -->
-        <div>
-          <label for="task-desc-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Notes & Details</label>
-          <textarea 
-            id="task-desc-input" 
-            rows="3" 
-            placeholder="Add relevant notes, links, or instructions..." 
-            class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-slate-800 transition-colors resize-none"
-          ></textarea>
-        </div>
-
-        <!-- Category & Priority Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <label for="task-category-select" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Category</label>
-            <select 
-              id="task-category-select" 
-              class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-brand-500 transition-colors"
-            >
-              <!-- Filled via JS -->
-            </select>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Hora de Entrada *</label>
+            <input type="time" id="entry-start-time" required class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
           </div>
-
           <div>
-            <label for="task-priority-select" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Priority</label>
-            <select 
-              id="task-priority-select" 
-              class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-brand-500 transition-colors"
-            >
-              <option value="low">Low Priority</option>
-              <option value="medium" selected>Medium Priority</option>
-              <option value="high">High Priority</option>
-              <option value="urgent">🔥 Urgent Priority</option>
-            </select>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Hora de Saída *</label>
+            <input type="time" id="entry-end-time" required class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
           </div>
         </div>
 
-        <!-- Due Date -->
-        <div>
-          <label for="task-due-date-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Due Date</label>
-          <input 
-            type="date" 
-            id="task-due-date-input" 
-            class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-brand-500 transition-colors"
-          >
-        </div>
-
-        <!-- Subtasks / Checklist -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Subtasks / Checklist</label>
-            <span id="subtasks-count-label" class="text-xs text-slate-400">0 items</span>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Saída Almoço</label>
+            <input type="time" id="entry-lunch-start" value="12:00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
           </div>
-
-          <!-- Subtasks List -->
-          <div id="modal-subtasks-list" class="space-y-2 mb-2.5">
-            <!-- Subtask items rendered here -->
-          </div>
-
-          <!-- Add subtask input -->
-          <div class="flex items-center gap-2">
-            <input 
-              type="text" 
-              id="new-subtask-input" 
-              placeholder="Add checklist item..." 
-              class="flex-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:outline-none focus:border-brand-500"
-            >
-            <button 
-              type="button" 
-              id="add-subtask-btn" 
-              class="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors"
-            >
-              Add Item
-            </button>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Retorno Almoço</label>
+            <input type="time" id="entry-lunch-end" value="13:00" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
           </div>
         </div>
 
-      </form>
-
-      <!-- Modal Footer -->
-      <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
-        <button 
-          type="button" 
-          id="modal-delete-btn" 
-          class="hidden px-3.5 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5"
-        >
-          <i data-lucide="trash-2" class="w-4 h-4"></i>
-          <span>Delete</span>
-        </button>
-
-        <div class="flex items-center gap-2.5 ml-auto">
-          <button 
-            type="button" 
-            id="modal-cancel-btn" 
-            class="px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-medium transition-colors"
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            form="task-form" 
-            id="modal-submit-btn" 
-            class="px-5 py-2 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition-all flex items-center gap-1.5"
-          >
-            <i data-lucide="check" class="w-4 h-4"></i>
-            <span id="modal-submit-text">Save Task</span>
-          </button>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Add Category Modal -->
-  <div id="category-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-200 p-6 space-y-4">
-      
-      <div class="flex items-center justify-between">
-        <h3 class="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-          <i data-lucide="folder-plus" class="w-5 h-5 text-brand-600"></i>
-          <span>New Category</span>
-        </h3>
-        <button id="close-category-modal-btn" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <form id="category-form" class="space-y-4">
         <div>
-          <label for="cat-name-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Name *</label>
-          <input 
-            type="text" 
-            id="cat-name-input" 
-            required 
-            placeholder="e.g., Fitness, Side Project, Books" 
-            class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-brand-500"
-          >
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Valor da Hora neste dia (R$/h)</label>
+          <input type="number" step="0.01" id="entry-rate" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold">
         </div>
 
-        <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Color</label>
-          <div class="flex items-center gap-3">
-            <label class="cursor-pointer">
-              <input type="radio" name="cat-color" value="#3b82f6" checked class="sr-only peer">
-              <span class="w-7 h-7 rounded-full bg-blue-500 block peer-checked:ring-4 peer-checked:ring-blue-300 dark:peer-checked:ring-blue-900 transition-all"></span>
-            </label>
-            <label class="cursor-pointer">
-              <input type="radio" name="cat-color" value="#10b981" class="sr-only peer">
-              <span class="w-7 h-7 rounded-full bg-emerald-500 block peer-checked:ring-4 peer-checked:ring-emerald-300 dark:peer-checked:ring-emerald-900 transition-all"></span>
-            </label>
-            <label class="cursor-pointer">
-              <input type="radio" name="cat-color" value="#8b5cf6" class="sr-only peer">
-              <span class="w-7 h-7 rounded-full bg-purple-500 block peer-checked:ring-4 peer-checked:ring-purple-300 dark:peer-checked:ring-purple-900 transition-all"></span>
-            </label>
-            <label class="cursor-pointer">
-              <input type="radio" name="cat-color" value="#f59e0b" class="sr-only peer">
-              <span class="w-7 h-7 rounded-full bg-amber-500 block peer-checked:ring-4 peer-checked:ring-amber-300 dark:peer-checked:ring-amber-900 transition-all"></span>
-            </label>
-            <label class="cursor-pointer">
-              <input type="radio" name="cat-color" value="#ec4899" class="sr-only peer">
-              <span class="w-7 h-7 rounded-full bg-pink-500 block peer-checked:ring-4 peer-checked:ring-pink-300 dark:peer-checked:ring-pink-900 transition-all"></span>
-            </label>
-            <label class="cursor-pointer">
-              <input type="radio" name="cat-color" value="#06b6d4" class="sr-only peer">
-              <span class="w-7 h-7 rounded-full bg-cyan-500 block peer-checked:ring-4 peer-checked:ring-cyan-300 dark:peer-checked:ring-cyan-900 transition-all"></span>
-            </label>
+        <!-- Real-time calculation preview in modal -->
+        <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs space-y-1.5">
+          <div class="flex justify-between">
+            <span class="text-slate-500">Horas Normais (8h-17h):</span>
+            <span id="modal-preview-normal" class="font-bold text-emerald-600 font-mono">0.0h</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Horas Extras (< 8h / > 17h):</span>
+            <span id="modal-preview-extra" class="font-bold text-amber-500 font-mono">0.0h</span>
+          </div>
+          <div class="pt-1 border-t border-slate-200 dark:border-slate-700 flex justify-between font-bold">
+            <span class="text-slate-800 dark:text-slate-100">Total do Dia:</span>
+            <span id="modal-preview-total" class="text-brand-600 dark:text-brand-400 font-mono">R$ 0,00</span>
           </div>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-2">
-          <button type="button" id="cancel-category-btn" class="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium">
-            Cancel
+          <button type="button" id="entry-modal-cancel" class="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium">
+            Cancelar
           </button>
           <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-md">
-            Create Category
+            Salvar Registro
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Toast Notification Container -->
+  <!-- Toast Container -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
-  <!-- JavaScript Code -->
+  <!-- Application Logic -->
   <script src="app.js"></script>
 </body>
 </html>
