@@ -52,6 +52,18 @@
       "created_at": "2026-11-23T10:06:19.743Z",
       "sender": "macOS",
       "is_cancelled": false
+    },
+    {
+      "id": "55e8a54a-18e7-41e9-a391-7b0c4fad03c4",
+      "role": "user",
+      "content": "Ótimo trabalho ! Mas quero que faça algumas alterações: use a moeda ienes; no sistema de férias remuneradas quero que seja calculada na porcentagem da hora normal e seu registro seja apenas como dia de férias sem acrescentar no calculo de horas trabalhadas e sim no salário final a receber, calculando como um dia trabalhado 8h normais. Quero defini também a data de início e fim de cálculo do mês. Faça essas alterações",
+      "status": "pending",
+      "model": "gemini-3.8-flash-high",
+      "client_type": "gemini-bridge",
+      "parent_message_id": null,
+      "created_at": "2026-11-23T10:26:30.941Z",
+      "sender": "ios",
+      "is_cancelled": false
     }
   ]
 }
