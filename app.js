@@ -1,1475 +1,1539 @@
 /**
- * TaskFlow — Modern & Powerful Task Manager
- * Features: Subtasks, Categories, Priority, Due Dates, Audio, Confetti, Search, Sort, Import/Export
+ * PontoGPS Pro — Controle de Ponto, Horas Extras e Férias
+ * Gestão de jornada de trabalho com geofencing, cálculo automático de horas extras e férias CLT.
  */
 
 (function () {
   'use strict';
 
-  // --- Initial Default Data ---
-  const DEFAULT_CATEGORIES = [
-    { id: 'cat-work', name: 'Work', color: '#3b82f6' },
-    { id: 'cat-personal', name: 'Personal', color: '#10b981' },
-    { id: 'cat-shopping', name: 'Shopping', color: '#f59e0b' },
-    { id: 'cat-health', name: 'Health', color: '#8b5cf6' },
-    { id: 'cat-learning', name: 'Learning', color: '#06b6d4' }
-  ];
-
-  const getTodayDateString = (offsetDays = 0) => {
-    const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
-    return d.toISOString().split('T')[0];
+  // --- Chaves do LocalStorage ---
+  const STORAGE_KEYS = {
+    ENTRIES: 'pontogps_entries',
+    VACATIONS: 'pontogps_vacations',
+    CONFIG: 'pontogps_config',
+    CURRENT_DAY: 'pontogps_current_day',
+    THEME: 'pontogps_theme'
   };
 
-  const DEFAULT_TASKS = [
-    {
-      id: 'task-1',
-      title: 'Finalize quarterly product roadmap',
-      description: 'Prepare presentation deck and align milestones with the engineering leads.',
-      categoryId: 'cat-work',
-      priority: 'urgent',
-      dueDate: getTodayDateString(0),
-      completed: false,
-      completedAt: null,
-      createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-      subtasks: [
-        { id: 'sub-1', title: 'Gather feature requests from customers', completed: true },
-        { id: 'sub-2', title: 'Estimate engineering bandwidth', completed: false },
-        { id: 'sub-3', title: 'Create slide deck for Monday review', completed: false }
-      ]
-    },
-    {
-      id: 'task-2',
-      title: 'Morning 5km jog & stretch',
-      description: 'Listen to the latest tech podcast while jogging in the park.',
-      categoryId: 'cat-health',
-      priority: 'medium',
-      dueDate: getTodayDateString(0),
-      completed: true,
-      completedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-      createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-      subtasks: []
-    },
-    {
-      id: 'task-3',
-      title: 'Review UX design system components',
-      description: 'Check color contrast, accessibility labels, and button focus states.',
-      categoryId: 'cat-work',
-      priority: 'high',
-      dueDate: getTodayDateString(1),
-      completed: false,
-      completedAt: null,
-      createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-      subtasks: [
-        { id: 'sub-4', title: 'Audit button state transitions', completed: true },
-        { id: 'sub-5', title: 'Test dark mode contrast tokens', completed: false }
-      ]
-    },
-    {
-      id: 'task-4',
-      title: 'Weekly grocery shopping',
-      description: 'Organic vegetables, Greek yogurt, sourdough bread, and coffee beans.',
-      categoryId: 'cat-shopping',
-      priority: 'medium',
-      dueDate: getTodayDateString(2),
-      completed: false,
-      completedAt: null,
-      createdAt: new Date(Date.now() - 3600000 * 20).toISOString(),
-      subtasks: [
-        { id: 'sub-6', title: 'Fresh vegetables & greens', completed: false },
-        { id: 'sub-7', title: 'Whole bean espresso blend', completed: false }
-      ]
-    },
-    {
-      id: 'task-5',
-      title: 'Read System Design & Architecture Chapter 4',
-      description: 'Take detailed notes on distributed event streaming and message brokers.',
-      categoryId: 'cat-learning',
-      priority: 'low',
-      dueDate: getTodayDateString(3),
-      completed: false,
-      completedAt: null,
-      createdAt: new Date(Date.now() - 3600000 * 28).toISOString(),
-      subtasks: []
+  // --- Configurações Padrão ---
+  const DEFAULT_CONFIG = {
+    hourlyRate: 25.00,        // R$ 25,00 por hora
+    overtimePercentage: 50,   // 50% de adicional
+    monthlySalary: 4400.00,    // Salário base referência para férias
+    standardStartTime: '08:00', // Início do horário normal
+    standardEndTime: '17:00',   // Término do horário normal
+    lunchMinutes: 60,         // 60 minutos de intervalo
+    workLocation: {
+      name: 'Sede da Empresa',
+      lat: -23.561684,         // Av. Paulista, São Paulo (Exemplo padrão)
+      lng: -46.655981,
+      radius: 150              // 150 metros de raio de tolerância
     }
-  ];
+  };
 
-  // --- State ---
+  // --- Registros de Demonstração (Mês Atual) ---
+  function getSampleData() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+
+    return [
+      {
+        id: 'entry-1',
+        date: `${year}-${month}-03`,
+        startTime: '07:30',
+        endTime: '17:45',
+        lunchStart: '12:00',
+        lunchEnd: '13:00',
+        hourlyRate: 25.00,
+        notes: 'Chegada antecipada e fechamento de relatório'
+      },
+      {
+        id: 'entry-2',
+        date: `${year}-${month}-04`,
+        startTime: '07:45',
+        endTime: '18:30',
+        lunchStart: '12:00',
+        lunchEnd: '13:00',
+        hourlyRate: 25.00,
+        notes: 'Horas extras na saída para reunião com cliente'
+      },
+      {
+        id: 'entry-3',
+        date: `${year}-${month}-05`,
+        startTime: '08:00',
+        endTime: '17:00',
+        lunchStart: '12:00',
+        lunchEnd: '13:00',
+        hourlyRate: 25.00,
+        notes: 'Jornada normal padrão'
+      },
+      {
+        id: 'entry-4',
+        date: `${year}-${month}-06`,
+        startTime: '07:15',
+        endTime: '17:15',
+        lunchStart: '12:00',
+        lunchEnd: '13:00',
+        hourlyRate: 25.00,
+        notes: 'Entrada 45min antes das 8h'
+      }
+    ];
+  }
+
+  function getSampleVacations() {
+    const now = new Date();
+    const year = now.getFullYear();
+    return [
+      {
+        id: 'vac-1',
+        startDate: `${year}-01-10`,
+        days: 15,
+        baseSalary: 4400.00,
+        vacationValue: 2200.00,
+        oneThirdBonus: 733.33,
+        totalValue: 2933.33,
+        soldAbono: false,
+        notes: 'Primeiro período de férias do ano'
+      }
+    ];
+  }
+
+  // --- Estado Global da Aplicação ---
   const state = {
-    tasks: [],
-    categories: [],
-    view: 'all', // 'all' | 'today' | 'upcoming' | 'completed' | 'cat:<id>'
-    statusFilter: 'all', // 'all' | 'active' | 'completed'
-    priorityFilter: null, // null | 'urgent' | 'high' | 'medium' | 'low'
-    searchQuery: '',
-    sortBy: 'dueDate', // 'dueDate' | 'priority' | 'createdAt' | 'alphabetical'
-    soundEnabled: true,
-    darkMode: false,
-    editingTaskId: null,
-    modalSubtasks: [],
-    undoAction: null
+    config: { ...DEFAULT_CONFIG },
+    entries: [],
+    vacations: [],
+    currentDay: {
+      date: getTodayString(),
+      startTime: null,
+      lunchStart: '12:00',
+      lunchEnd: '13:00',
+      endTime: null
+    },
+    userLocation: null,
+    isInsideWorkplace: false,
+    distanceToWork: null,
+    activeTab: 'ponto',
+    editingEntryId: null,
+    map: null,
+    workMarker: null,
+    workCircle: null,
+    userMarker: null,
+    simulationActive: false
   };
 
-  // --- Audio Synthesis via Web Audio API ---
+  // --- Helpers de Data e Hora ---
+  function getTodayString() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function getCurrentTimeString() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  function timeToMinutes(timeStr) {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(':').map(Number);
+    return (h * 60) + (m || 0);
+  }
+
+  function minutesToTime(mins) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  function formatCurrency(val) {
+    return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function formatDateBR(dateStr) {
+    if (!dateStr) return '--/--/----';
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  // --- Motor de Cálculo de Horas (Normais vs Extras) ---
+  /**
+   * Calcula as horas de uma jornada de trabalho:
+   * - Horário Normal padrão: 08:00 às 17:00 (com 1h de almoço)
+   * - Qualquer trabalho antes das 08:00 ou após as 17:00 conta como HORA EXTRA.
+   */
+  function calculateShift(startTime, endTime, lunchStart = '12:00', lunchEnd = '13:00', rate = null, overtimePct = null) {
+    const hourlyRate = Number(rate || state.config.hourlyRate);
+    const otPct = Number(overtimePct !== null ? overtimePct : state.config.overtimePercentage);
+    const extraRate = hourlyRate * (1 + (otPct / 100));
+
+    if (!startTime || !endTime) {
+      return {
+        normalMinutes: 0,
+        normalHours: 0,
+        morningExtraMinutes: 0,
+        eveningExtraMinutes: 0,
+        totalExtraMinutes: 0,
+        totalExtraHours: 0,
+        totalWorkedHours: 0,
+        normalValue: 0,
+        extraValue: 0,
+        totalValue: 0
+      };
+    }
+
+    const tStart = timeToMinutes(startTime);
+    const tEnd = timeToMinutes(endTime);
+    if (tEnd <= tStart) {
+      return {
+        normalMinutes: 0, normalHours: 0, morningExtraMinutes: 0,
+        eveningExtraMinutes: 0, totalExtraMinutes: 0, totalExtraHours: 0,
+        totalWorkedHours: 0, normalValue: 0, extraValue: 0, totalValue: 0
+      };
+    }
+
+    const lStart = timeToMinutes(lunchStart || '12:00');
+    const lEnd = timeToMinutes(lunchEnd || '13:00');
+
+    const stdStart = timeToMinutes(state.config.standardStartTime || '08:00'); // 480
+    const stdEnd = timeToMinutes(state.config.standardEndTime || '17:00');     // 1020
+
+    // 1. Horas Extras da Manhã (antes das 08:00)
+    let morningExtraMinutes = 0;
+    if (tStart < stdStart) {
+      morningExtraMinutes = Math.min(stdStart, tEnd) - tStart;
+    }
+
+    // 2. Horas Extras da Tarde/Noite (após as 17:00)
+    let eveningExtraMinutes = 0;
+    if (tEnd > stdEnd) {
+      eveningExtraMinutes = tEnd - Math.max(stdEnd, tStart);
+    }
+
+    const totalExtraMinutes = morningExtraMinutes + eveningExtraMinutes;
+    const totalExtraHours = Number((totalExtraMinutes / 60).toFixed(2));
+
+    // 3. Horas Normais (janela entre 08:00 e 17:00)
+    let normalMinutes = 0;
+    const winStart = Math.max(tStart, stdStart);
+    const winEnd = Math.min(tEnd, stdEnd);
+
+    if (winEnd > winStart) {
+      const grossNormal = winEnd - winStart;
+      // Abater intervalo de almoço que ocorreu dentro dessa janela
+      const lunchOverlap = Math.max(0, Math.min(winEnd, lEnd) - Math.max(winStart, lStart));
+      normalMinutes = Math.max(0, grossNormal - lunchOverlap);
+    }
+
+    const normalHours = Number((normalMinutes / 60).toFixed(2));
+    const totalWorkedHours = Number(((normalMinutes + totalExtraMinutes) / 60).toFixed(2));
+
+    const normalValue = normalHours * hourlyRate;
+    const extraValue = totalExtraHours * extraRate;
+    const totalValue = normalValue + extraValue;
+
+    return {
+      normalMinutes,
+      normalHours,
+      morningExtraMinutes,
+      eveningExtraMinutes,
+      totalExtraMinutes,
+      totalExtraHours,
+      totalWorkedHours,
+      normalValue,
+      extraValue,
+      totalValue,
+      hourlyRate,
+      extraRate
+    };
+  }
+
+  // --- Motor de Cálculo de Férias Remuneradas CLT ---
+  function calculateVacation(baseSalary, days, sellAbono = false) {
+    const salary = Number(baseSalary || state.config.monthlySalary);
+    const d = Number(days || 30);
+
+    const dailyRate = salary / 30;
+    const periodBase = dailyRate * d;
+    const oneThird = periodBase / 3;
+    let abonoValue = 0;
+
+    if (sellAbono) {
+      // 10 dias de abono pecuniário + 1/3 do abono
+      const abonoBase = dailyRate * 10;
+      abonoValue = abonoBase + (abonoBase / 3);
+    }
+
+    const totalValue = periodBase + oneThird + abonoValue;
+
+    return {
+      dailyRate,
+      periodBase,
+      oneThird,
+      abonoValue,
+      totalValue
+    };
+  }
+
+  // --- Fórmula de Haversine para Distância GPS ---
+  function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // Raio da Terra em metros
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(R * c);
+  }
+
+  // --- Síntese de Áudio para Feedback de Ponto ---
   let audioCtx = null;
-  function getAudioContext() {
-    if (!audioCtx) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) {
-        audioCtx = new AudioContextClass();
+  function playBeep(success = true) {
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-    return audioCtx;
-  }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
 
-  function playChimeSound() {
-    if (!state.soundEnabled) return;
-    try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
-      
-      const now = ctx.currentTime;
-      // Note 1: E5 (659.25Hz)
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(659.25, now);
-      gain1.gain.setValueAtTime(0.12, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.35);
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
 
-      // Note 2: B5 (987.77Hz) slightly delayed for a bright success chime
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(987.77, now + 0.08);
-      gain2.gain.setValueAtTime(0.12, now + 0.08);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(now + 0.08);
-      osc2.stop(now + 0.45);
-    } catch (e) {
-      console.warn('Audio play failed:', e);
-    }
-  }
-
-  function playPopSound() {
-    if (!state.soundEnabled) return;
-    try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(320, now);
-      osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.12);
-    } catch (e) {
-      console.warn('Audio play failed:', e);
-    }
-  }
-
-  // --- Confetti Celebration ---
-  function fireConfetti() {
-    if (typeof confetti === 'function') {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.75 },
-        colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
-      });
-    }
-  }
-
-  // --- Storage ---
-  function loadState() {
-    try {
-      const storedTasks = localStorage.getItem('taskflow_tasks');
-      state.tasks = storedTasks ? JSON.parse(storedTasks) : DEFAULT_TASKS;
-
-      const storedCategories = localStorage.getItem('taskflow_categories');
-      state.categories = storedCategories ? JSON.parse(storedCategories) : DEFAULT_CATEGORIES;
-
-      const storedSound = localStorage.getItem('taskflow_sound');
-      if (storedSound !== null) {
-        state.soundEnabled = JSON.parse(storedSound);
-      }
-
-      const storedTheme = localStorage.getItem('taskflow_theme');
-      if (storedTheme) {
-        state.darkMode = storedTheme === 'dark';
+      osc.type = 'sine';
+      if (success) {
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+        osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
       } else {
-        state.darkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        osc.frequency.setValueAtTime(300, now);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
       }
     } catch (e) {
-      console.error('Failed to load from localStorage:', e);
-      state.tasks = DEFAULT_TASKS;
-      state.categories = DEFAULT_CATEGORIES;
+      // Audio optional
     }
-  }
-
-  function saveTasks() {
-    try {
-      localStorage.setItem('taskflow_tasks', JSON.stringify(state.tasks));
-    } catch (e) {
-      console.error('Failed to save tasks to localStorage:', e);
-    }
-  }
-
-  function saveCategories() {
-    try {
-      localStorage.setItem('taskflow_categories', JSON.stringify(state.categories));
-    } catch (e) {
-      console.error('Failed to save categories to localStorage:', e);
-    }
-  }
-
-  function saveSettings() {
-    try {
-      localStorage.setItem('taskflow_sound', JSON.stringify(state.soundEnabled));
-      localStorage.setItem('taskflow_theme', state.darkMode ? 'dark' : 'light');
-    } catch (e) {
-      console.error('Failed to save settings:', e);
-    }
-  }
-
-  // --- Theme Sync ---
-  function applyTheme() {
-    if (state.darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    saveSettings();
-  }
-
-  // --- Sound Setting Sync ---
-  function updateSoundUI() {
-    const icon = document.getElementById('sound-icon');
-    if (!icon) return;
-    if (state.soundEnabled) {
-      icon.setAttribute('data-lucide', 'volume-2');
-      icon.parentElement.classList.remove('opacity-40');
-    } else {
-      icon.setAttribute('data-lucide', 'volume-x');
-      icon.parentElement.classList.add('opacity-40');
-    }
-    if (window.lucide) lucide.createIcons();
   }
 
   // --- Toast Notifications ---
-  function showToast(message, actionLabel = null, onAction = null) {
+  function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
     const toast = document.createElement('div');
-    toast.className = 'toast-msg flex items-center justify-between gap-3 px-4 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-xl border border-slate-700 dark:border-slate-200 text-xs font-medium';
+    toast.className = 'toast-msg flex items-center gap-2.5 px-4 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700 dark:border-slate-200 text-xs font-semibold';
     
-    const textSpan = document.createElement('span');
-    textSpan.textContent = message;
-    toast.appendChild(textSpan);
+    let iconName = 'info';
+    if (type === 'success') iconName = 'check-circle-2';
+    if (type === 'alert') iconName = 'bell';
 
-    if (actionLabel && onAction) {
-      const actionBtn = document.createElement('button');
-      actionBtn.className = 'font-bold underline text-brand-400 dark:text-brand-600 hover:opacity-80 transition-opacity ml-2';
-      actionBtn.textContent = actionLabel;
-      actionBtn.addEventListener('click', () => {
-        onAction();
-        toast.remove();
-      });
-      toast.appendChild(actionBtn);
-    }
+    toast.innerHTML = `
+      <i data-lucide="${iconName}" class="w-4 h-4 text-brand-400 dark:text-brand-600 shrink-0"></i>
+      <span>${message}</span>
+    `;
 
     container.appendChild(toast);
+    if (window.lucide) lucide.createIcons();
 
     setTimeout(() => {
-      if (toast.parentElement) {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(10px) scale(0.95)';
-        toast.style.transition = 'all 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-      }
-    }, 4500);
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(8px)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
   }
 
-  // --- Helpers ---
-  function getCategory(categoryId) {
-    return state.categories.find(c => c.id === categoryId) || {
-      id: 'default',
-      name: 'General',
-      color: '#64748b'
-    };
-  }
-
-  function formatDueDate(dateString) {
-    if (!dateString) return null;
-    const todayStr = getTodayDateString(0);
-    const tomorrowStr = getTodayDateString(1);
-    const yesterdayStr = getTodayDateString(-1);
-
-    if (dateString === todayStr) {
-      return { text: 'Today', isOverdue: false, isToday: true, isUpcoming: false };
-    }
-    if (dateString === tomorrowStr) {
-      return { text: 'Tomorrow', isOverdue: false, isToday: false, isUpcoming: true };
-    }
-    if (dateString < todayStr) {
-      return { text: dateString, isOverdue: true, isToday: false, isUpcoming: false };
-    }
-
-    // Format YYYY-MM-DD to readable (e.g., Nov 25)
+  // --- Persistência no LocalStorage ---
+  function loadFromStorage() {
     try {
-      const parts = dateString.split('-');
-      const d = new Date(parts[0], parts[1] - 1, parts[2]);
-      const formatted = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      return { text: formatted, isOverdue: false, isToday: false, isUpcoming: true };
-    } catch (e) {
-      return { text: dateString, isOverdue: false, isToday: false, isUpcoming: true };
-    }
-  }
+      const cfg = localStorage.getItem(STORAGE_KEYS.CONFIG);
+      if (cfg) state.config = { ...DEFAULT_CONFIG, ...JSON.parse(cfg) };
 
-  function getPriorityWeight(priority) {
-    switch (priority) {
-      case 'urgent': return 4;
-      case 'high': return 3;
-      case 'medium': return 2;
-      case 'low': return 1;
-      default: return 0;
-    }
-  }
+      const ent = localStorage.getItem(STORAGE_KEYS.ENTRIES);
+      state.entries = ent ? JSON.parse(ent) : getSampleData();
 
-  // --- Filtering & Sorting Tasks ---
-  function getFilteredAndSortedTasks() {
-    const todayStr = getTodayDateString(0);
+      const vac = localStorage.getItem(STORAGE_KEYS.VACATIONS);
+      state.vacations = vac ? JSON.parse(vac) : getSampleVacations();
 
-    return state.tasks.filter(task => {
-      // 1. View filter
-      if (state.view === 'today') {
-        if (task.dueDate !== todayStr) return false;
-      } else if (state.view === 'upcoming') {
-        if (!task.dueDate || task.dueDate <= todayStr) return false;
-      } else if (state.view === 'completed') {
-        if (!task.completed) return false;
-      } else if (state.view.startsWith('cat:')) {
-        const catId = state.view.replace('cat:', '');
-        if (task.categoryId !== catId) return false;
-      }
-
-      // 2. Status Pill filter (All, Active, Completed)
-      if (state.statusFilter === 'active' && task.completed) return false;
-      if (state.statusFilter === 'completed' && !task.completed) return false;
-
-      // 3. Priority filter
-      if (state.priorityFilter && task.priority !== state.priorityFilter) {
-        return false;
-      }
-
-      // 4. Search Query
-      if (state.searchQuery.trim()) {
-        const query = state.searchQuery.toLowerCase().trim();
-        const matchesTitle = task.title.toLowerCase().includes(query);
-        const matchesDesc = (task.description || '').toLowerCase().includes(query);
-        const cat = getCategory(task.categoryId);
-        const matchesCat = cat.name.toLowerCase().includes(query);
-        const matchesSubtasks = (task.subtasks || []).some(s => s.title.toLowerCase().includes(query));
-
-        if (!matchesTitle && !matchesDesc && !matchesCat && !matchesSubtasks) {
-          return false;
+      const cur = localStorage.getItem(STORAGE_KEYS.CURRENT_DAY);
+      if (cur) {
+        const parsedCur = JSON.parse(cur);
+        if (parsedCur.date === getTodayString()) {
+          state.currentDay = parsedCur;
         }
       }
 
-      return true;
-    }).sort((a, b) => {
-      // Completed items always sort to bottom unless viewing specifically completed
-      if (state.view !== 'completed' && a.completed !== b.completed) {
-        return a.completed ? 1 : -1;
-      }
-
-      if (state.sortBy === 'dueDate') {
-        if (!a.dueDate && !b.dueDate) return 0;
-        if (!a.dueDate) return 1;
-        if (!b.dueDate) return -1;
-        return a.dueDate.localeCompare(b.dueDate);
-      } else if (state.sortBy === 'priority') {
-        return getPriorityWeight(b.priority) - getPriorityWeight(a.priority);
-      } else if (state.sortBy === 'alphabetical') {
-        return a.title.localeCompare(b.title);
-      } else if (state.sortBy === 'createdAt') {
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      }
-      return 0;
-    });
-  }
-
-  // --- Render Counts & Navigation ---
-  function updateSidebarCounts() {
-    const todayStr = getTodayDateString(0);
-    
-    // View counts
-    const countAll = state.tasks.filter(t => !t.completed).length;
-    const countToday = state.tasks.filter(t => !t.completed && t.dueDate === todayStr).length;
-    const countUpcoming = state.tasks.filter(t => !t.completed && t.dueDate && t.dueDate > todayStr).length;
-    const countCompleted = state.tasks.filter(t => t.completed).length;
-
-    document.getElementById('count-all').textContent = countAll;
-    document.getElementById('count-today').textContent = countToday;
-    document.getElementById('count-upcoming').textContent = countUpcoming;
-    document.getElementById('count-completed').textContent = countCompleted;
-
-    // Priority counts (active only)
-    document.getElementById('count-urgent').textContent = state.tasks.filter(t => !t.completed && t.priority === 'urgent').length;
-    document.getElementById('count-high').textContent = state.tasks.filter(t => !t.completed && t.priority === 'high').length;
-    document.getElementById('count-medium').textContent = state.tasks.filter(t => !t.completed && t.priority === 'medium').length;
-    document.getElementById('count-low').textContent = state.tasks.filter(t => !t.completed && t.priority === 'low').length;
-
-    // Productivity bar calculations
-    const total = state.tasks.length;
-    const completed = state.tasks.filter(t => t.completed).length;
-    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-    document.getElementById('stat-completed-count').textContent = completed;
-    document.getElementById('stat-total-count').textContent = total;
-    document.getElementById('stat-percent').textContent = `${percent}%`;
-
-    const ring = document.getElementById('stat-progress-ring');
-    if (ring) {
-      // Circumference = 2 * PI * 16 ≈ 100
-      const offset = 100 - (100 * percent / 100);
-      ring.style.strokeDashoffset = offset;
-    }
-
-    const encouragement = document.getElementById('stat-encouragement');
-    if (encouragement) {
-      if (percent === 100 && total > 0) {
-        encouragement.textContent = '🎉 All caught up! Stellar work!';
-      } else if (percent >= 70) {
-        encouragement.textContent = 'Almost there! Finish strong.';
-      } else if (percent > 0) {
-        encouragement.textContent = 'Good momentum, keep going!';
+      const theme = localStorage.getItem(STORAGE_KEYS.THEME);
+      if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
       } else {
-        encouragement.textContent = 'Ready to make progress?';
+        document.documentElement.classList.remove('dark');
       }
+    } catch (e) {
+      console.error('Erro ao ler armazenamento local:', e);
+      state.entries = getSampleData();
+      state.vacations = getSampleVacations();
     }
   }
 
-  function renderCategoryList() {
-    const listEl = document.getElementById('category-list');
-    const quickSelect = document.getElementById('quick-task-category');
-    const modalSelect = document.getElementById('task-category-select');
+  function saveConfig() {
+    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(state.config));
+  }
 
-    if (!listEl) return;
-    listEl.innerHTML = '';
-    if (quickSelect) quickSelect.innerHTML = '';
-    if (modalSelect) modalSelect.innerHTML = '';
+  function saveEntries() {
+    localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(state.entries));
+  }
 
-    state.categories.forEach(cat => {
-      const catCount = state.tasks.filter(t => !t.completed && t.categoryId === cat.id).length;
-      const isCurrentView = state.view === `cat:${cat.id}`;
+  function saveVacations() {
+    localStorage.setItem(STORAGE_KEYS.VACATIONS, JSON.stringify(state.vacations));
+  }
 
-      // Sidebar button
-      const btn = document.createElement('button');
-      btn.className = `w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium transition-all group ${
-        isCurrentView 
-          ? 'bg-slate-200/80 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold' 
-          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'
-      }`;
-      btn.dataset.categoryView = cat.id;
-      btn.innerHTML = `
-        <span class="flex items-center gap-2.5">
-          <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${cat.color}"></span>
-          <span class="truncate">${cat.name}</span>
-        </span>
-        <span class="text-[11px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200">${catCount}</span>
-      `;
-      btn.addEventListener('click', () => {
-        state.view = `cat:${cat.id}`;
-        state.priorityFilter = null;
-        updateNavState();
-        render();
-        closeSidebarOnMobile();
-      });
-      listEl.appendChild(btn);
+  function saveCurrentDay() {
+    localStorage.setItem(STORAGE_KEYS.CURRENT_DAY, JSON.stringify(state.currentDay));
+  }
 
-      // Populate Quick Select
-      if (quickSelect) {
-        const opt = document.createElement('option');
-        opt.value = cat.id;
-        opt.textContent = cat.name;
-        quickSelect.appendChild(opt);
-      }
+  // --- Inicialização do Mapa Leaflet ---
+  function initMap() {
+    const mapContainer = document.getElementById('workplace-map');
+    if (!mapContainer || typeof L === 'undefined') return;
 
-      // Populate Modal Select
-      if (modalSelect) {
-        const opt = document.createElement('option');
-        opt.value = cat.id;
-        opt.textContent = cat.name;
-        modalSelect.appendChild(opt);
-      }
+    const workLat = state.config.workLocation.lat;
+    const workLng = state.config.workLocation.lng;
+    const workRadius = state.config.workLocation.radius;
+
+    state.map = L.map('workplace-map').setView([workLat, workLng], 16);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(state.map);
+
+    // Ícone personalizado para o local de trabalho
+    const workIcon = L.divIcon({
+      className: 'custom-work-marker',
+      html: `
+        <div style="background-color: #1a5ee9; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(26,94,233,0.4); border: 2px solid white;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+      `,
+      iconSize: [34, 34],
+      iconAnchor: [17, 34]
+    });
+
+    state.workMarker = L.marker([workLat, workLng], {
+      icon: workIcon,
+      draggable: true
+    }).addTo(state.map);
+
+    state.workMarker.bindPopup('<b>Local de Trabalho</b><br>Arraste para reposicionar ou clique no mapa.').openPopup();
+
+    // Círculo de Geofence
+    state.workCircle = L.circle([workLat, workLng], {
+      color: '#1a5ee9',
+      fillColor: '#2f7df6',
+      fillOpacity: 0.15,
+      radius: workRadius
+    }).addTo(state.map);
+
+    // Evento de arrastar marcador de trabalho
+    state.workMarker.on('dragend', function (e) {
+      const pos = e.target.getLatLng();
+      updateWorkplaceCoordinates(pos.lat, pos.lng);
+      showToast('Local de trabalho reposicionado');
+    });
+
+    // Evento de clique no mapa para mover trabalho
+    state.map.on('click', function (e) {
+      updateWorkplaceCoordinates(e.latlng.lat, e.latlng.lng);
+      showToast('Novo local de trabalho definido');
     });
   }
 
-  function updateNavState() {
-    // Nav items
-    document.querySelectorAll('.nav-item').forEach(item => {
-      const v = item.dataset.view;
-      if (v === state.view) {
-        item.classList.add('active-nav');
-        item.classList.remove('text-slate-600', 'dark:text-slate-400');
-      } else {
-        item.classList.remove('active-nav');
-        item.classList.add('text-slate-600', 'dark:text-slate-400');
-      }
-    });
+  function updateWorkplaceCoordinates(lat, lng) {
+    state.config.workLocation.lat = Number(lat.toFixed(6));
+    state.config.workLocation.lng = Number(lng.toFixed(6));
+    saveConfig();
 
-    // Priority filter items
-    document.querySelectorAll('.priority-nav-item').forEach(item => {
-      const p = item.dataset.priorityFilter;
-      if (p === state.priorityFilter) {
-        item.classList.add('active-nav');
-      } else {
-        item.classList.remove('active-nav');
-      }
-    });
+    if (state.workMarker) state.workMarker.setLatLng([lat, lng]);
+    if (state.workCircle) state.workCircle.setLatLng([lat, lng]);
 
-    // Status filter pills
-    document.querySelectorAll('.status-pill').forEach(pill => {
-      if (pill.dataset.statusFilter === state.statusFilter) {
-        pill.classList.add('active-pill');
-        pill.classList.remove('text-slate-600', 'dark:text-slate-400');
-      } else {
-        pill.classList.remove('active-pill');
-        pill.classList.add('text-slate-600', 'dark:text-slate-400');
-      }
-    });
+    // Atualizar campos nas configurações se visíveis
+    const latInp = document.getElementById('cfg-work-lat');
+    const lngInp = document.getElementById('cfg-work-lng');
+    if (latInp) latInp.value = state.config.workLocation.lat;
+    if (lngInp) lngInp.value = state.config.workLocation.lng;
 
-    // View title and subtitle
-    const titleEl = document.getElementById('view-title');
-    const subEl = document.getElementById('view-subtitle');
-    const filterBadge = document.getElementById('active-filter-badge');
+    updateGPSStatus();
+  }
 
-    if (state.view === 'all') {
-      titleEl.textContent = 'All Tasks';
-      subEl.textContent = 'Stay organized and get things done effortlessly';
-    } else if (state.view === 'today') {
-      titleEl.textContent = 'Today';
-      subEl.textContent = `Tasks scheduled for ${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}`;
-    } else if (state.view === 'upcoming') {
-      titleEl.textContent = 'Upcoming';
-      subEl.textContent = 'Plan ahead and stay on top of deadlines';
-    } else if (state.view === 'completed') {
-      titleEl.textContent = 'Completed';
-      subEl.textContent = 'Look at all the achievements you unlocked';
-    } else if (state.view.startsWith('cat:')) {
-      const cat = getCategory(state.view.replace('cat:', ''));
-      titleEl.textContent = cat.name;
-      subEl.textContent = `Tasks filed under category "${cat.name}"`;
-    }
-
-    // Active Priority badge / Reset button
-    const resetContainer = document.getElementById('filter-reset-container');
-    if (state.priorityFilter || state.searchQuery) {
-      resetContainer.classList.remove('hidden');
-      if (state.priorityFilter) {
-        filterBadge.classList.remove('hidden');
-        filterBadge.textContent = `Priority: ${state.priorityFilter.toUpperCase()}`;
-      } else {
-        filterBadge.classList.add('hidden');
-      }
+  // --- Rastreamento e Simulação de GPS ---
+  function startGPSTracking() {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.watchPosition(
+        (position) => {
+          if (!state.simulationActive) {
+            handleNewGPSPosition(position.coords.latitude, position.coords.longitude);
+          }
+        },
+        (error) => {
+          console.warn('GPS não autorizado ou indisponível:', error.message);
+          // Fallback gracioso
+          updateGPSUIWithoutCoords();
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      );
     } else {
-      resetContainer.classList.add('hidden');
-      filterBadge.classList.add('hidden');
+      updateGPSUIWithoutCoords();
     }
   }
 
-  // --- Render Task Cards ---
-  function renderTaskList() {
-    const container = document.getElementById('task-list');
-    const emptyState = document.getElementById('empty-state');
-    if (!container) return;
+  function handleNewGPSPosition(lat, lng) {
+    state.userLocation = { lat, lng };
 
-    const filtered = getFilteredAndSortedTasks();
+    const distance = calculateDistanceMeters(
+      lat, lng,
+      state.config.workLocation.lat,
+      state.config.workLocation.lng
+    );
 
-    if (filtered.length === 0) {
-      container.innerHTML = '';
-      emptyState.classList.remove('hidden');
-      
-      const emptyTitle = document.getElementById('empty-title');
-      const emptyDesc = document.getElementById('empty-desc');
-      if (state.searchQuery) {
-        emptyTitle.textContent = 'No matching tasks';
-        emptyDesc.textContent = `No tasks found matching "${state.searchQuery}". Try a different search term.`;
-      } else if (state.view === 'completed') {
-        emptyTitle.textContent = 'No completed tasks yet';
-        emptyDesc.textContent = 'Complete some tasks from your list to see them here!';
-      } else if (state.view === 'today') {
-        emptyTitle.textContent = 'No tasks due today';
-        emptyDesc.textContent = 'Your schedule for today is crystal clear!';
+    state.distanceToWork = distance;
+    const wasInside = state.isInsideWorkplace;
+    const isNowInside = distance <= state.config.workLocation.radius;
+    state.isInsideWorkplace = isNowInside;
+
+    // Atualizar marcador do usuário no mapa
+    if (state.map) {
+      if (!state.userMarker) {
+        const userIcon = L.divIcon({
+          className: 'custom-user-marker',
+          html: `
+            <div style="background-color: #10b981; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 14px rgba(16,185,129,0.7); border: 2px solid white;">
+              <span style="width: 10px; height: 10px; background: white; border-radius: 50%;"></span>
+            </div>
+          `,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+        state.userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(state.map);
+        state.userMarker.bindPopup('Sua Posição Atual');
       } else {
-        emptyTitle.textContent = 'No tasks found';
-        emptyDesc.textContent = "You're all caught up! Add a new task to stay on top of your goals.";
+        state.userMarker.setLatLng([lat, lng]);
       }
+    }
+
+    updateGPSStatus();
+
+    // Se acabou de chegar no trabalho e ainda não bateu entrada hoje:
+    if (isNowInside && !wasInside && !state.currentDay.startTime) {
+      triggerArrivalPrompt();
+    }
+  }
+
+  function updateGPSUIWithoutCoords() {
+    const sidebarInd = document.getElementById('sidebar-gps-indicator');
+    const sidebarDist = document.getElementById('sidebar-gps-distance');
+    const badge = document.getElementById('ponto-geofence-badge');
+    const insideStatus = document.getElementById('gps-inside-status');
+    const distSpan = document.getElementById('gps-current-distance');
+
+    if (sidebarInd) {
+      sidebarInd.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-400"></span><span>Simulador Ativo</span>';
+    }
+    if (sidebarDist) {
+      sidebarDist.innerHTML = `Distância: <strong>Use o Simulador</strong>`;
+    }
+    if (badge) {
+      badge.className = 'px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
+      badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-400"></span><span>Aguardando Posição</span>';
+    }
+    if (insideStatus) insideStatus.textContent = 'Aguardando simulação';
+    if (distSpan) distSpan.textContent = '--';
+  }
+
+  function updateGPSStatus() {
+    const isInside = state.isInsideWorkplace;
+    const dist = state.distanceToWork !== null ? state.distanceToWork : '--';
+
+    // 1. Sidebar widget
+    const sidebarInd = document.getElementById('sidebar-gps-indicator');
+    const sidebarDist = document.getElementById('sidebar-gps-distance');
+    if (sidebarInd) {
+      if (isInside) {
+        sidebarInd.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-emerald-600 font-bold">No Trabalho</span>';
+      } else {
+        sidebarInd.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500"></span><span class="text-amber-500 font-medium">Fora do Raio</span>';
+      }
+    }
+    if (sidebarDist) {
+      sidebarDist.innerHTML = `Distância: <strong>${dist} m</strong> (Raio: ${state.config.workLocation.radius}m)`;
+    }
+
+    // 2. Card Status Box
+    const targetName = document.getElementById('gps-target-name');
+    const currentDist = document.getElementById('gps-current-distance');
+    const insideStatus = document.getElementById('gps-inside-status');
+    const cardRadius = document.getElementById('card-radius-display');
+
+    if (targetName) targetName.textContent = state.config.workLocation.name || 'Sede da Empresa';
+    if (currentDist) currentDist.textContent = `${dist} metros`;
+    if (cardRadius) cardRadius.textContent = `${state.config.workLocation.radius}m`;
+
+    if (insideStatus) {
+      if (isInside) {
+        insideStatus.textContent = 'SIM (🟢 No Local)';
+        insideStatus.className = 'font-bold text-emerald-600 dark:text-emerald-400';
+      } else {
+        insideStatus.textContent = 'NÃO (📍 Fora do Raio)';
+        insideStatus.className = 'font-bold text-slate-500';
+      }
+    }
+
+    // 3. Ponto Geofence Badge
+    const badge = document.getElementById('ponto-geofence-badge');
+    if (badge) {
+      if (isInside) {
+        badge.className = 'px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span><span>No Local de Trabalho (GPS OK)</span>';
+      } else {
+        badge.className = 'px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-400"></span><span>Fora do Trabalho (' + dist + 'm)</span>';
+      }
+    }
+  }
+
+  // --- Sugestão Automática de Horário de Início ao Chegar ---
+  function triggerArrivalPrompt() {
+    const banner = document.getElementById('arrival-alert-banner');
+    const textEl = document.getElementById('arrival-suggestion-text');
+    if (!banner || !textEl) return;
+
+    const currentTime = getCurrentTimeString();
+    const currentMins = timeToMinutes(currentTime);
+    const stdStartMins = timeToMinutes(state.config.standardStartTime || '08:00'); // 480
+
+    let extraMsg = '';
+    if (currentMins < stdStartMins) {
+      const diffMins = stdStartMins - currentMins;
+      const hours = (diffMins / 60).toFixed(2);
+      extraMsg = ` (com ${diffMins} minutos / ${hours}h de hora extra matutina contabilizada automaticamente).`;
+    } else {
+      extraMsg = ` (jornada normal em andamento).`;
+    }
+
+    textEl.innerHTML = `Detectamos sua chegada ao local! Horário de início mais provável: <strong>${currentTime}</strong>${extraMsg}`;
+    banner.classList.remove('hidden');
+
+    playBeep(true);
+  }
+
+  // --- Ações do Dia Atual (Bater Ponto) ---
+  function clockIn(customTime = null) {
+    const time = customTime || getCurrentTimeString();
+    state.currentDay.startTime = time;
+    saveCurrentDay();
+    updateTodayUI();
+    playBeep(true);
+
+    // Ocultar banner de chegada
+    const banner = document.getElementById('arrival-alert-banner');
+    if (banner) banner.classList.add('hidden');
+
+    const stdStart = state.config.standardStartTime || '08:00';
+    if (time < stdStart) {
+      showToast(`Entrada registrada às ${time}! Horas antes das ${stdStart} contam como hora extra. 🔥`, 'success');
+    } else {
+      showToast(`Entrada registrada com sucesso às ${time}!`, 'success');
+    }
+  }
+
+  function clockOut(customTime = null) {
+    if (!state.currentDay.startTime) {
+      showToast('Por favor, registre a entrada primeiro!', 'alert');
       return;
     }
 
-    emptyState.classList.add('hidden');
-    container.innerHTML = '';
+    const time = customTime || getCurrentTimeString();
+    state.currentDay.endTime = time;
+    saveCurrentDay();
+    updateTodayUI();
+    playBeep(true);
 
-    filtered.forEach(task => {
-      const cat = getCategory(task.categoryId);
-      const dueDateInfo = formatDueDate(task.dueDate);
-      const subtasks = task.subtasks || [];
-      const completedSubtasks = subtasks.filter(s => s.completed).length;
+    if (typeof confetti === 'function') {
+      confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+    }
 
-      const card = document.createElement('div');
-      card.className = `task-card group relative bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all ${
-        task.completed ? 'task-completed bg-slate-50/50 dark:bg-slate-900/40' : ''
-      }`;
-      card.dataset.taskId = task.id;
+    // Salvar no histórico permanente automaticamente
+    finalizeCurrentDayEntry();
+    showToast(`Saída registrada às ${time}! Jornada de hoje calculada e salva. 🚀`, 'success');
+  }
 
-      // Priority Badge
-      const priorityClass = `badge-${task.priority}`;
+  function finalizeCurrentDayEntry() {
+    const cur = state.currentDay;
+    if (!cur.startTime || !cur.endTime) return;
 
-      // Due Date Badge HTML
-      let dueBadgeHtml = '';
-      if (dueDateInfo) {
-        let badgeStyle = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
-        if (dueDateInfo.isOverdue && !task.completed) {
-          badgeStyle = 'badge-overdue font-semibold';
-        } else if (dueDateInfo.isToday && !task.completed) {
-          badgeStyle = 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-semibold';
-        }
-        dueBadgeHtml = `
-          <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg ${badgeStyle}">
-            <i data-lucide="calendar" class="w-3 h-3"></i>
-            <span>${dueDateInfo.isOverdue && !task.completed ? 'Overdue: ' : ''}${dueDateInfo.text}</span>
+    // Verificar se já existe registro na mesma data
+    const existingIdx = state.entries.findIndex(e => e.date === cur.date);
+    const newEntry = {
+      id: existingIdx >= 0 ? state.entries[existingIdx].id : 'entry-' + Date.now(),
+      date: cur.date,
+      startTime: cur.startTime,
+      endTime: cur.endTime,
+      lunchStart: cur.lunchStart || '12:00',
+      lunchEnd: cur.lunchEnd || '13:00',
+      hourlyRate: state.config.hourlyRate,
+      notes: 'Ponto registrado via GPS'
+    };
+
+    if (existingIdx >= 0) {
+      state.entries[existingIdx] = newEntry;
+    } else {
+      state.entries.unshift(newEntry);
+    }
+
+    saveEntries();
+    renderHistoryTable();
+    renderReports();
+    updateHeaderEarnings();
+  }
+
+  // --- Atualização da UI do Dia Atual ---
+  function updateTodayUI() {
+    const cur = state.currentDay;
+    const entryEl = document.getElementById('today-entry-time');
+    const entryTag = document.getElementById('today-entry-tag');
+    const exitEl = document.getElementById('today-exit-time');
+    const exitTag = document.getElementById('today-exit-tag');
+    const lunchStartEl = document.getElementById('today-lunch-start-time');
+    const lunchEndEl = document.getElementById('today-lunch-end-time');
+
+    if (entryEl) entryEl.textContent = cur.startTime || '--:--';
+    if (exitEl) exitEl.textContent = cur.endTime || '--:--';
+    if (lunchStartEl) lunchStartEl.textContent = cur.lunchStart || '12:00';
+    if (lunchEndEl) lunchEndEl.textContent = cur.lunchEnd || '13:00';
+
+    if (entryTag) {
+      if (cur.startTime) {
+        const isEarly = cur.startTime < (state.config.standardStartTime || '08:00');
+        entryTag.textContent = isEarly ? 'Hora Extra (Antes 8h)' : 'Horário Normal';
+        entryTag.className = isEarly ? 'inline-block mt-1 text-[10px] font-bold text-amber-500' : 'inline-block mt-1 text-[10px] font-semibold text-emerald-500';
+      } else {
+        entryTag.textContent = 'Não registrada';
+        entryTag.className = 'inline-block mt-1 text-[10px] font-semibold text-slate-400';
+      }
+    }
+
+    if (exitTag) {
+      if (cur.endTime) {
+        const isLate = cur.endTime > (state.config.standardEndTime || '17:00');
+        exitTag.textContent = isLate ? 'Hora Extra (Após 17h)' : 'Jornada Concluída';
+        exitTag.className = isLate ? 'inline-block mt-1 text-[10px] font-bold text-amber-500' : 'inline-block mt-1 text-[10px] font-semibold text-emerald-500';
+      } else {
+        exitTag.textContent = cur.startTime ? 'Em andamento...' : 'Aguardando início';
+        exitTag.className = 'inline-block mt-1 text-[10px] font-semibold text-slate-400';
+      }
+    }
+
+    // Calcular valores de hoje em tempo real
+    const calc = calculateShift(
+      cur.startTime,
+      cur.endTime || (cur.startTime ? getCurrentTimeString() : null),
+      cur.lunchStart,
+      cur.lunchEnd
+    );
+
+    document.getElementById('today-calc-normal').textContent = `${calc.normalHours}h (${formatCurrency(calc.normalValue)})`;
+    document.getElementById('today-calc-extra-morning').textContent = `${(calc.morningExtraMinutes / 60).toFixed(2)}h`;
+    document.getElementById('today-calc-extra-evening').textContent = `${(calc.eveningExtraMinutes / 60).toFixed(2)}h`;
+    document.getElementById('today-calc-total-val').textContent = formatCurrency(calc.totalValue);
+  }
+
+  // --- Relógio em Tempo Real ---
+  function updateLiveClock() {
+    const clockEl = document.getElementById('live-clock');
+    const dateEl = document.getElementById('live-date');
+    if (!clockEl || !dateEl) return;
+
+    const now = new Date();
+    clockEl.textContent = now.toLocaleTimeString('pt-BR');
+
+    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    dateEl.textContent = now.toLocaleDateString('pt-BR', options);
+
+    // Se estiver em expediente, atualizar cálculo dinamicamente
+    if (state.currentDay.startTime && !state.currentDay.endTime) {
+      updateTodayUI();
+    }
+  }
+
+  // --- Aba 2: Histórico de Horas ---
+  function renderHistoryTable() {
+    const tbody = document.getElementById('history-table-body');
+    const emptyState = document.getElementById('history-empty-state');
+    const monthFilter = document.getElementById('history-month-filter');
+    const filterTotHours = document.getElementById('history-filter-total-hours');
+    const filterTotVal = document.getElementById('history-filter-total-value');
+    const tabCount = document.getElementById('tab-count-historico');
+
+    if (!tbody) return;
+
+    let filtered = [...state.entries];
+    const selectedMonth = monthFilter ? monthFilter.value : '';
+
+    if (selectedMonth) {
+      filtered = filtered.filter(e => e.date && e.date.startsWith(selectedMonth));
+    }
+
+    // Ordenar por data decrescente
+    filtered.sort((a, b) => b.date.localeCompare(a.date));
+
+    if (tabCount) tabCount.textContent = state.entries.length;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '';
+      if (emptyState) emptyState.classList.remove('hidden');
+      if (filterTotHours) filterTotHours.textContent = '0.0h';
+      if (filterTotVal) filterTotVal.textContent = 'R$ 0,00';
+      return;
+    }
+
+    if (emptyState) emptyState.classList.add('hidden');
+    tbody.innerHTML = '';
+
+    let sumHours = 0;
+    let sumValue = 0;
+
+    filtered.forEach(entry => {
+      const calc = calculateShift(
+        entry.startTime,
+        entry.endTime,
+        entry.lunchStart,
+        entry.lunchEnd,
+        entry.hourlyRate
+      );
+
+      sumHours += calc.totalWorkedHours;
+      sumValue += calc.totalValue;
+
+      const row = document.createElement('tr');
+      row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors';
+
+      // Badges de extra
+      let extraBadge = `<span class="text-slate-400 font-mono">0.0h</span>`;
+      if (calc.totalExtraHours > 0) {
+        extraBadge = `
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-mono font-bold text-[11px]">
+            <i data-lucide="flame" class="w-3 h-3 text-amber-500"></i>
+            <span>+${calc.totalExtraHours}h (${formatCurrency(calc.extraValue)})</span>
           </span>
         `;
       }
 
-      // Subtasks Summary HTML
-      let subtasksHtml = '';
-      if (subtasks.length > 0) {
-        const percent = Math.round((completedSubtasks / subtasks.length) * 100);
-        subtasksHtml = `
-          <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
-            <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1.5">
-              <span class="flex items-center gap-1 font-medium">
-                <i data-lucide="list-checks" class="w-3.5 h-3.5 text-slate-400"></i>
-                <span>Subtasks (${completedSubtasks}/${subtasks.length})</span>
-              </span>
-              <span class="font-semibold">${percent}%</span>
-            </div>
-            <!-- Progress Bar -->
-            <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-              <div class="bg-brand-600 dark:bg-brand-500 h-full rounded-full transition-all duration-300" style="width: ${percent}%"></div>
-            </div>
-
-            <!-- Subtask mini checklist -->
-            <div class="space-y-1.5 mt-2.5">
-              ${subtasks.map(sub => `
-                <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">
-                  <input type="checkbox" data-task-id="${task.id}" data-subtask-id="${sub.id}" class="subtask-toggle rounded border-slate-300 dark:border-slate-700 text-brand-600 focus:ring-brand-500 w-3.5 h-3.5 cursor-pointer" ${sub.completed ? 'checked' : ''}>
-                  <span class="${sub.completed ? 'line-through text-slate-400 dark:text-slate-500' : ''}">${escapeHtml(sub.title)}</span>
-                </label>
-              `).join('')}
-            </div>
+      row.innerHTML = `
+        <td class="py-3 px-4 font-medium text-slate-900 dark:text-white font-mono">
+          ${formatDateBR(entry.date)}
+        </td>
+        <td class="py-3 px-3 font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+          ${entry.startTime}
+        </td>
+        <td class="py-3 px-3 font-mono text-slate-500">
+          ${entry.lunchStart || '12:00'} - ${entry.lunchEnd || '13:00'}
+        </td>
+        <td class="py-3 px-3 font-mono font-semibold text-rose-500">
+          ${entry.endTime}
+        </td>
+        <td class="py-3 px-3 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
+          ${calc.normalHours}h
+        </td>
+        <td class="py-3 px-3 text-center">
+          ${extraBadge}
+        </td>
+        <td class="py-3 px-3 font-mono text-slate-500">
+          ${formatCurrency(entry.hourlyRate || state.config.hourlyRate)}
+        </td>
+        <td class="py-3 px-4 text-right font-mono font-extrabold text-brand-600 dark:text-brand-400 text-sm">
+          ${formatCurrency(calc.totalValue)}
+        </td>
+        <td class="py-3 px-3 text-center">
+          <div class="flex items-center justify-center gap-1">
+            <button class="edit-entry-btn p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800" data-id="${entry.id}" title="Editar">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            </button>
+            <button class="delete-entry-btn p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40" data-id="${entry.id}" title="Excluir">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
           </div>
-        `;
-      }
-
-      card.innerHTML = `
-        <div class="flex items-start gap-3.5">
-          <!-- Main Checkbox -->
-          <label class="custom-checkbox mt-0.5" title="Mark as ${task.completed ? 'incomplete' : 'completed'}">
-            <input type="checkbox" class="task-toggle" data-id="${task.id}" ${task.completed ? 'checked' : ''}>
-            <span class="checkbox-mark">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </span>
-          </label>
-
-          <!-- Task Content -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2">
-              <h3 class="task-title font-semibold text-sm sm:text-base text-slate-900 dark:text-slate-100 truncate ${task.completed ? 'completed' : ''}">
-                ${escapeHtml(task.title)}
-              </h3>
-
-              <!-- Actions on Hover / Menu -->
-              <div class="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                <button class="edit-task-btn p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" data-id="${task.id}" title="Edit task">
-                  <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
-                </button>
-                <button class="duplicate-task-btn p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" data-id="${task.id}" title="Duplicate task">
-                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                </button>
-                <button class="delete-task-btn p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors" data-id="${task.id}" title="Delete task">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Description (if any) -->
-            ${task.description ? `
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                ${escapeHtml(task.description)}
-              </p>
-            ` : ''}
-
-            <!-- Metadata Badges -->
-            <div class="flex flex-wrap items-center gap-2 mt-2.5">
-              <!-- Category Pill -->
-              <span class="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${cat.color}"></span>
-                <span>${cat.name}</span>
-              </span>
-
-              <!-- Priority Pill -->
-              <span class="text-[11px] font-medium px-2 py-0.5 rounded-lg uppercase tracking-wide ${priorityClass}">
-                ${task.priority}
-              </span>
-
-              <!-- Due Date Pill -->
-              ${dueBadgeHtml}
-            </div>
-
-            <!-- Subtasks Container -->
-            ${subtasksHtml}
-          </div>
-        </div>
+        </td>
       `;
 
-      container.appendChild(card);
+      tbody.appendChild(row);
     });
 
-    if (window.lucide) {
-      lucide.createIcons();
-    }
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
-  // --- Task Operations ---
-  function addTask({ title, description, categoryId, priority, dueDate, subtasks = [] }) {
-    if (!title || !title.trim()) return;
-
-    const newTask = {
-      id: 'task-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-      title: title.trim(),
-      description: (description || '').trim(),
-      categoryId: categoryId || (state.categories[0] ? state.categories[0].id : 'cat-work'),
-      priority: priority || 'medium',
-      dueDate: dueDate || null,
-      completed: false,
-      completedAt: null,
-      createdAt: new Date().toISOString(),
-      subtasks: subtasks
-    };
-
-    state.tasks.unshift(newTask);
-    saveTasks();
-    render();
-    showToast('Task added successfully');
-  }
-
-  function updateTask(id, updates) {
-    const idx = state.tasks.findIndex(t => t.id === id);
-    if (idx === -1) return;
-
-    state.tasks[idx] = {
-      ...state.tasks[idx],
-      ...updates
-    };
-
-    saveTasks();
-    render();
-  }
-
-  function toggleTaskCompletion(id) {
-    const task = state.tasks.find(t => t.id === id);
-    if (!task) return;
-
-    const newCompleted = !task.completed;
-    task.completed = newCompleted;
-    task.completedAt = newCompleted ? new Date().toISOString() : null;
-
-    saveTasks();
-    render();
-
-    if (newCompleted) {
-      playChimeSound();
-      fireConfetti();
-      showToast(`Task completed! 🎉`, 'Undo', () => {
-        task.completed = false;
-        task.completedAt = null;
-        saveTasks();
-        render();
-      });
-    }
-  }
-
-  function toggleSubtask(taskId, subtaskId) {
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task || !task.subtasks) return;
-
-    const sub = task.subtasks.find(s => s.id === subtaskId);
-    if (!sub) return;
-
-    sub.completed = !sub.completed;
-
-    // If all subtasks completed, check if parent should complete
-    const allDone = task.subtasks.length > 0 && task.subtasks.every(s => s.completed);
-    if (allDone && !task.completed) {
-      task.completed = true;
-      task.completedAt = new Date().toISOString();
-      playChimeSound();
-      fireConfetti();
-      showToast('All subtasks completed! Task marked done. 🚀');
-    }
-
-    saveTasks();
-    render();
-  }
-
-  function deleteTask(id) {
-    const idx = state.tasks.findIndex(t => t.id === id);
-    if (idx === -1) return;
-
-    const [deletedTask] = state.tasks.splice(idx, 1);
-    saveTasks();
-    render();
-    playPopSound();
-
-    showToast(`Deleted "${deletedTask.title}"`, 'Undo', () => {
-      state.tasks.splice(idx, 0, deletedTask);
-      saveTasks();
-      render();
-    });
-  }
-
-  function duplicateTask(id) {
-    const task = state.tasks.find(t => t.id === id);
-    if (!task) return;
-
-    const clone = {
-      ...task,
-      id: 'task-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-      title: `${task.title} (Copy)`,
-      completed: false,
-      completedAt: null,
-      createdAt: new Date().toISOString(),
-      subtasks: (task.subtasks || []).map(s => ({ ...s, id: 'sub-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5), completed: false }))
-    };
-
-    state.tasks.unshift(clone);
-    saveTasks();
-    render();
-    showToast('Task duplicated');
-  }
-
-  function clearCompletedTasks() {
-    const completedCount = state.tasks.filter(t => t.completed).length;
-    if (completedCount === 0) {
-      showToast('No completed tasks to clear.');
-      return;
-    }
-
-    if (!confirm(`Are you sure you want to permanently clear ${completedCount} completed task(s)?`)) {
-      return;
-    }
-
-    const removed = state.tasks.filter(t => t.completed);
-    state.tasks = state.tasks.filter(t => !t.completed);
-    saveTasks();
-    render();
-    showToast(`Cleared ${completedCount} completed task(s).`, 'Undo', () => {
-      state.tasks.push(...removed);
-      saveTasks();
-      render();
-    });
-  }
-
-  // --- Modal Operations (Add / Edit) ---
-  function openTaskModal(taskId = null) {
-    state.editingTaskId = taskId;
-    const modal = document.getElementById('task-modal');
-    const modalTitle = document.getElementById('modal-title').querySelector('span');
-    const deleteBtn = document.getElementById('modal-delete-btn');
-    const submitText = document.getElementById('modal-submit-text');
-
-    const titleInput = document.getElementById('task-title-input');
-    const descInput = document.getElementById('task-desc-input');
-    const catSelect = document.getElementById('task-category-select');
-    const prioritySelect = document.getElementById('task-priority-select');
-    const dueInput = document.getElementById('task-due-date-input');
-
-    if (taskId) {
-      const task = state.tasks.find(t => t.id === taskId);
-      if (!task) return;
-
-      modalTitle.textContent = 'Edit Task';
-      submitText.textContent = 'Save Changes';
-      deleteBtn.classList.remove('hidden');
-
-      titleInput.value = task.title;
-      descInput.value = task.description || '';
-      catSelect.value = task.categoryId;
-      prioritySelect.value = task.priority;
-      dueInput.value = task.dueDate || '';
-      state.modalSubtasks = (task.subtasks || []).map(s => ({ ...s }));
-    } else {
-      modalTitle.textContent = 'Create Task';
-      submitText.textContent = 'Create Task';
-      deleteBtn.classList.add('hidden');
-
-      titleInput.value = '';
-      descInput.value = '';
-      catSelect.value = state.categories[0] ? state.categories[0].id : '';
-      prioritySelect.value = 'medium';
-      dueInput.value = state.view === 'today' ? getTodayDateString(0) : '';
-      state.modalSubtasks = [];
-    }
-
-    renderModalSubtasks();
-    modal.classList.remove('hidden');
-    setTimeout(() => {
-      titleInput.focus();
-    }, 100);
-  }
-
-  function closeTaskModal() {
-    const modal = document.getElementById('task-modal');
-    modal.classList.add('hidden');
-    state.editingTaskId = null;
-    state.modalSubtasks = [];
-  }
-
-  function renderModalSubtasks() {
-    const list = document.getElementById('modal-subtasks-list');
-    const countLabel = document.getElementById('subtasks-count-label');
-    if (!list) return;
-
-    countLabel.textContent = `${state.modalSubtasks.length} items`;
-    list.innerHTML = '';
-
-    state.modalSubtasks.forEach((sub, idx) => {
-      const div = document.createElement('div');
-      div.className = 'flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 rounded-xl text-xs border border-slate-200/70 dark:border-slate-700/60';
-      div.innerHTML = `
-        <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
-          <input type="checkbox" class="modal-subtask-check rounded text-brand-600 focus:ring-brand-500 w-3.5 h-3.5 cursor-pointer" data-idx="${idx}" ${sub.completed ? 'checked' : ''}>
-          <span class="truncate ${sub.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'}">${escapeHtml(sub.title)}</span>
-        </label>
-        <button type="button" class="modal-subtask-del text-slate-400 hover:text-rose-500 transition-colors p-1" data-idx="${idx}">
-          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-        </button>
-      `;
-      list.appendChild(div);
-    });
+    if (filterTotHours) filterTotHours.textContent = `${sumHours.toFixed(1)}h`;
+    if (filterTotVal) filterTotVal.textContent = formatCurrency(sumValue);
 
     if (window.lucide) lucide.createIcons();
   }
 
-  // --- Category Modal Operations ---
-  function openCategoryModal() {
-    const modal = document.getElementById('category-modal');
-    const input = document.getElementById('cat-name-input');
-    input.value = '';
-    modal.classList.remove('hidden');
-    setTimeout(() => input.focus(), 100);
+  // --- Aba 3: Férias Remuneradas ---
+  function renderVacations() {
+    const list = document.getElementById('ferias-list-container');
+    const emptyState = document.getElementById('ferias-empty-state');
+    const totalAcumEl = document.getElementById('ferias-historico-total');
+
+    if (!list) return;
+
+    let totalVacVal = 0;
+    list.innerHTML = '';
+
+    if (state.vacations.length === 0) {
+      if (emptyState) emptyState.classList.remove('hidden');
+      if (totalAcumEl) totalAcumEl.textContent = 'R$ 0,00';
+      return;
+    }
+
+    if (emptyState) emptyState.classList.add('hidden');
+
+    state.vacations.forEach(vac => {
+      totalVacVal += vac.totalValue;
+
+      const card = document.createElement('div');
+      card.className = 'p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3';
+      card.innerHTML = `
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm text-slate-900 dark:text-white">${vac.days} Dias de Férias</span>
+            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+              + 1/3 Constitucional
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">
+            Início: <strong>${formatDateBR(vac.startDate)}</strong> | Salário Base: ${formatCurrency(vac.baseSalary)}
+            ${vac.notes ? ` — <em>${vac.notes}</em>` : ''}
+          </p>
+        </div>
+
+        <div class="flex items-center gap-4 self-end sm:self-auto">
+          <div class="text-right">
+            <span class="text-[10px] uppercase font-bold text-slate-400">Total Proventos</span>
+            <div class="font-mono font-extrabold text-base text-emerald-600 dark:text-emerald-400">
+              ${formatCurrency(vac.totalValue)}
+            </div>
+          </div>
+          <button class="delete-vacation-btn p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40" data-id="${vac.id}" title="Excluir">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `;
+
+      list.appendChild(card);
+    });
+
+    if (totalAcumEl) totalAcumEl.textContent = formatCurrency(totalVacVal);
+    if (window.lucide) lucide.createIcons();
   }
 
-  function closeCategoryModal() {
-    const modal = document.getElementById('category-modal');
-    modal.classList.add('hidden');
+  function updateVacationCalcPreview() {
+    const salary = Number(document.getElementById('ferias-salario-input').value) || state.config.monthlySalary;
+    const days = Number(document.getElementById('ferias-dias-input').value) || 30;
+    const abono = document.getElementById('ferias-abono-select').value === 'sim';
+
+    const calc = calculateVacation(salary, days, abono);
+
+    document.getElementById('calc-ferias-base').textContent = formatCurrency(calc.periodBase);
+    document.getElementById('calc-ferias-terco').textContent = `+ ${formatCurrency(calc.oneThird)}`;
+    document.getElementById('calc-ferias-total').textContent = formatCurrency(calc.totalValue);
   }
 
-  // --- Mobile Sidebar Helper ---
-  function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const backdrop = document.getElementById('sidebar-backdrop');
-    const isOpen = !sidebar.classList.contains('-translate-x-full');
+  // --- Aba 4: Relatórios e Holerite Estimado ---
+  function renderReports() {
+    const monthSelect = document.getElementById('report-month-select');
+    if (!monthSelect) return;
 
-    if (isOpen) {
-      sidebar.classList.add('-translate-x-full');
-      backdrop.classList.add('hidden');
+    const selectedMonth = monthSelect.value || getTodayString().substring(0, 7);
+    monthSelect.value = selectedMonth;
+
+    const [year, month] = selectedMonth.split('-');
+    const dateObj = new Date(Number(year), Number(month) - 1, 1);
+    const monthName = dateObj.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+    const refLabel = document.getElementById('holerite-ref-month');
+    if (refLabel) refLabel.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
+    // Filtrar lançamentos do mês
+    const monthEntries = state.entries.filter(e => e.date && e.date.startsWith(selectedMonth));
+
+    let totNormalHours = 0;
+    let totNormalVal = 0;
+    let totExtraHours = 0;
+    let totExtraVal = 0;
+
+    monthEntries.forEach(entry => {
+      const calc = calculateShift(
+        entry.startTime,
+        entry.endTime,
+        entry.lunchStart,
+        entry.lunchEnd,
+        entry.hourlyRate
+      );
+      totNormalHours += calc.normalHours;
+      totNormalVal += calc.normalValue;
+      totExtraHours += calc.totalExtraHours;
+      totExtraVal += calc.extraValue;
+    });
+
+    // Férias concedidas no mês
+    const monthVacations = state.vacations.filter(v => v.startDate && v.startDate.startsWith(selectedMonth));
+    let totVacDays = 0;
+    let totVacBase = 0;
+    let totVacTerco = 0;
+    let totVacVal = 0;
+
+    monthVacations.forEach(v => {
+      totVacDays += v.days;
+      totVacBase += v.vacationValue || (v.totalValue * 0.75);
+      totVacTerco += v.oneThirdBonus || (v.totalValue * 0.25);
+      totVacVal += v.totalValue;
+    });
+
+    const grandTotal = totNormalVal + totExtraVal + totVacVal;
+
+    // Atualizar cartões de métrica
+    document.getElementById('rep-normal-hours').textContent = `${totNormalHours.toFixed(1)}h`;
+    document.getElementById('rep-normal-val').textContent = formatCurrency(totNormalVal);
+
+    document.getElementById('rep-extra-hours').textContent = `${totExtraHours.toFixed(1)}h`;
+    document.getElementById('rep-extra-val').textContent = formatCurrency(totExtraVal);
+
+    document.getElementById('rep-ferias-days').textContent = `${totVacDays} dias`;
+    document.getElementById('rep-ferias-val').textContent = formatCurrency(totVacVal);
+
+    document.getElementById('rep-total-earnings').textContent = formatCurrency(grandTotal);
+
+    // Tabela discriminada estilo Holerite
+    document.getElementById('table-row-normal-ref').textContent = `${totNormalHours.toFixed(1)}h`;
+    document.getElementById('table-row-normal-unit').textContent = `${formatCurrency(state.config.hourlyRate)}/h`;
+    document.getElementById('table-row-normal-tot').textContent = formatCurrency(totNormalVal);
+
+    const extraRate = state.config.hourlyRate * (1 + (state.config.overtimePercentage / 100));
+    document.getElementById('table-row-extra-ref').textContent = `${totExtraHours.toFixed(1)}h`;
+    document.getElementById('table-row-extra-unit').textContent = `${formatCurrency(extraRate)}/h`;
+    document.getElementById('table-row-extra-tot').textContent = formatCurrency(totExtraVal);
+
+    document.getElementById('table-row-ferias-ref').textContent = `${totVacDays} dias`;
+    document.getElementById('table-row-ferias-tot').textContent = formatCurrency(totVacBase);
+
+    document.getElementById('table-row-terco-tot').textContent = formatCurrency(totVacTerco);
+
+    document.getElementById('table-row-grand-total').textContent = formatCurrency(grandTotal);
+  }
+
+  function updateHeaderEarnings() {
+    const curMonth = getTodayString().substring(0, 7);
+    const monthEntries = state.entries.filter(e => e.date && e.date.startsWith(curMonth));
+    const monthVacations = state.vacations.filter(v => v.startDate && v.startDate.startsWith(curMonth));
+
+    let sum = 0;
+    monthEntries.forEach(e => {
+      const c = calculateShift(e.startTime, e.endTime, e.lunchStart, e.lunchEnd, e.hourlyRate);
+      sum += c.totalValue;
+    });
+    monthVacations.forEach(v => {
+      sum += v.totalValue;
+    });
+
+    const el = document.getElementById('header-month-earnings');
+    if (el) el.textContent = formatCurrency(sum);
+
+    const rateDisplay = document.getElementById('header-rate-display');
+    if (rateDisplay) rateDisplay.textContent = `${formatCurrency(state.config.hourlyRate)}/h`;
+  }
+
+  // --- Modal de Lançamento Manual / Edição ---
+  function openEntryModal(entryId = null) {
+    state.editingEntryId = entryId;
+    const modal = document.getElementById('entry-modal');
+    const titleEl = document.getElementById('entry-modal-title').querySelector('span');
+
+    const dateInp = document.getElementById('entry-date');
+    const startInp = document.getElementById('entry-start-time');
+    const endInp = document.getElementById('entry-end-time');
+    const lunchStartInp = document.getElementById('entry-lunch-start');
+    const lunchEndInp = document.getElementById('entry-lunch-end');
+    const rateInp = document.getElementById('entry-rate');
+
+    if (entryId) {
+      const entry = state.entries.find(e => e.id === entryId);
+      if (!entry) return;
+
+      titleEl.textContent = 'Editar Registro de Jornada';
+      dateInp.value = entry.date;
+      startInp.value = entry.startTime;
+      endInp.value = entry.endTime;
+      lunchStartInp.value = entry.lunchStart || '12:00';
+      lunchEndInp.value = entry.lunchEnd || '13:00';
+      rateInp.value = entry.hourlyRate || state.config.hourlyRate;
     } else {
-      sidebar.classList.remove('-translate-x-full');
-      backdrop.classList.remove('hidden');
+      titleEl.textContent = 'Novo Registro Manual de Jornada';
+      dateInp.value = getTodayString();
+      startInp.value = '08:00';
+      endInp.value = '17:00';
+      lunchStartInp.value = '12:00';
+      lunchEndInp.value = '13:00';
+      rateInp.value = state.config.hourlyRate;
     }
+
+    updateEntryModalPreview();
+    modal.classList.remove('hidden');
   }
 
-  function closeSidebarOnMobile() {
-    if (window.innerWidth < 1024) {
-      const sidebar = document.getElementById('sidebar');
-      const backdrop = document.getElementById('sidebar-backdrop');
-      sidebar.classList.add('-translate-x-full');
-      backdrop.classList.add('hidden');
-    }
+  function closeEntryModal() {
+    const modal = document.getElementById('entry-modal');
+    modal.classList.add('hidden');
+    state.editingEntryId = null;
   }
 
-  // --- Export & Import Data ---
-  function exportData() {
+  function updateEntryModalPreview() {
+    const start = document.getElementById('entry-start-time').value;
+    const end = document.getElementById('entry-end-time').value;
+    const lStart = document.getElementById('entry-lunch-start').value;
+    const lEnd = document.getElementById('entry-lunch-end').value;
+    const rate = Number(document.getElementById('entry-rate').value) || state.config.hourlyRate;
+
+    const calc = calculateShift(start, end, lStart, lEnd, rate);
+
+    document.getElementById('modal-preview-normal').textContent = `${calc.normalHours}h (${formatCurrency(calc.normalValue)})`;
+    document.getElementById('modal-preview-extra').textContent = `${calc.totalExtraHours}h (${formatCurrency(calc.extraValue)})`;
+    document.getElementById('modal-preview-total').textContent = formatCurrency(calc.totalValue);
+  }
+
+  // --- Exportação de Dados ---
+  function exportCSV() {
+    if (state.entries.length === 0) {
+      showToast('Nenhum dado para exportar.');
+      return;
+    }
+
+    let csv = 'Data,Entrada,Almoco_Saida,Almoco_Volta,Saida,Horas_Normais,Horas_Extras,Valor_Total_BRL\n';
+
+    state.entries.forEach(e => {
+      const c = calculateShift(e.startTime, e.endTime, e.lunchStart, e.lunchEnd, e.hourlyRate);
+      csv += `${e.date},${e.startTime},${e.lunchStart || '12:00'},${e.lunchEnd || '13:00'},${e.endTime},${c.normalHours},${c.totalExtraHours},${c.totalValue.toFixed(2)}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pontogps-registros-${getTodayString()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('Planilha CSV exportada com sucesso!');
+  }
+
+  function exportBackupJSON() {
     const data = {
-      version: 1,
+      app: 'PontoGPS Pro',
+      version: 2,
       exportedAt: new Date().toISOString(),
-      tasks: state.tasks,
-      categories: state.categories
+      config: state.config,
+      entries: state.entries,
+      vacations: state.vacations
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `taskflow-backup-${getTodayDateString(0)}.json`;
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pontogps-backup-${getTodayString()}.json`;
+    link.click();
     URL.revokeObjectURL(url);
-    showToast('Backup file downloaded.');
+    showToast('Backup JSON exportado com sucesso!');
   }
 
-  function importData(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const parsed = JSON.parse(e.target.result);
-        if (Array.isArray(parsed.tasks)) {
-          state.tasks = parsed.tasks;
-          if (Array.isArray(parsed.categories) && parsed.categories.length > 0) {
-            state.categories = parsed.categories;
-          }
-          saveTasks();
-          saveCategories();
-          render();
-          showToast('Data imported successfully!');
-        } else {
-          showToast('Invalid backup file structure.');
-        }
-      } catch (err) {
-        showToast('Failed to parse JSON file.');
+  // --- Configurações & Sincronização ---
+  function loadConfigForm() {
+    document.getElementById('cfg-hourly-rate').value = state.config.hourlyRate;
+    document.getElementById('cfg-overtime-pct').value = state.config.overtimePercentage;
+    document.getElementById('cfg-monthly-salary').value = state.config.monthlySalary;
+    document.getElementById('cfg-start-time').value = state.config.standardStartTime || '08:00';
+    document.getElementById('cfg-end-time').value = state.config.standardEndTime || '17:00';
+    document.getElementById('cfg-lunch-minutes').value = state.config.lunchMinutes || 60;
+    document.getElementById('cfg-work-lat').value = state.config.workLocation.lat;
+    document.getElementById('cfg-work-lng').value = state.config.workLocation.lng;
+    document.getElementById('cfg-work-radius').value = state.config.workLocation.radius;
+  }
+
+  // --- Navegação entre Abas ---
+  function switchTab(tabId) {
+    state.activeTab = tabId;
+
+    // Atualizar botões
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      if (btn.dataset.tab === tabId) {
+        btn.classList.add('active-tab');
+        btn.classList.remove('text-slate-600', 'dark:text-slate-400');
+      } else {
+        btn.classList.remove('active-tab');
+        btn.classList.add('text-slate-600', 'dark:text-slate-400');
       }
-    };
-    reader.readAsText(file);
+    });
+
+    // Ocultar todas as abas
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.classList.add('hidden');
+    });
+
+    // Exibir aba selecionada
+    const target = document.getElementById(`tab-${tabId}`);
+    if (target) target.classList.remove('hidden');
+
+    // Fechar menu mobile se aberto
+    closeMobileDrawer();
+
+    // Redimensionar mapa se abrir aba ponto
+    if (tabId === 'ponto' && state.map) {
+      setTimeout(() => {
+        state.map.invalidateSize();
+      }, 200);
+    }
   }
 
-  // --- Main Master Render ---
-  function render() {
-    updateSidebarCounts();
-    renderCategoryList();
-    updateNavState();
-    renderTaskList();
+  function closeMobileDrawer() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('drawer-backdrop');
+    if (sidebar) sidebar.classList.add('-translate-x-full');
+    if (backdrop) backdrop.classList.add('hidden');
   }
 
-  // --- Event Listeners Setup ---
+  function openMobileDrawer() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('drawer-backdrop');
+    if (sidebar) sidebar.classList.remove('-translate-x-full');
+    if (backdrop) backdrop.classList.remove('hidden');
+  }
+
+  // --- Registro de Event Listeners ---
   function setupEventListeners() {
-    // 1. Navigation clicks (All, Today, Upcoming, Completed)
-    document.querySelectorAll('.nav-item').forEach(btn => {
+    // 1. Alternador de abas
+    document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        state.view = btn.dataset.view;
-        state.priorityFilter = null;
-        updateNavState();
-        render();
-        closeSidebarOnMobile();
+        switchTab(btn.dataset.tab);
       });
     });
 
-    // 2. Priority Nav clicks
-    document.querySelectorAll('.priority-nav-item').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const p = btn.dataset.priorityFilter;
-        state.priorityFilter = state.priorityFilter === p ? null : p;
-        updateNavState();
-        render();
-        closeSidebarOnMobile();
-      });
-    });
+    // 2. Mobile Drawer
+    document.getElementById('mobile-menu-btn').addEventListener('click', openMobileDrawer);
+    document.getElementById('drawer-backdrop').addEventListener('click', closeMobileDrawer);
 
-    // 3. Status filter pills (All, Active, Completed)
-    document.querySelectorAll('.status-pill').forEach(pill => {
-      pill.addEventListener('click', () => {
-        state.statusFilter = pill.dataset.statusFilter;
-        updateNavState();
-        render();
-      });
-    });
-
-    // 4. Reset Filters button
-    document.getElementById('clear-all-filters-btn').addEventListener('click', () => {
-      state.priorityFilter = null;
-      state.searchQuery = '';
-      document.getElementById('search-input').value = '';
-      document.getElementById('clear-search-btn').classList.add('hidden');
-      updateNavState();
-      render();
-    });
-
-    // 5. Search Bar input
-    const searchInput = document.getElementById('search-input');
-    const clearSearchBtn = document.getElementById('clear-search-btn');
-
-    searchInput.addEventListener('input', (e) => {
-      state.searchQuery = e.target.value;
-      if (state.searchQuery.trim()) {
-        clearSearchBtn.classList.remove('hidden');
-      } else {
-        clearSearchBtn.classList.add('hidden');
-      }
-      render();
-    });
-
-    clearSearchBtn.addEventListener('click', () => {
-      searchInput.value = '';
-      state.searchQuery = '';
-      clearSearchBtn.classList.add('hidden');
-      render();
-      searchInput.focus();
-    });
-
-    // 6. Sort Dropdown
-    const sortMenuBtn = document.getElementById('sort-menu-btn');
-    const sortDropdown = document.getElementById('sort-dropdown');
-    const sortLabel = document.getElementById('current-sort-label');
-
-    sortMenuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      sortDropdown.classList.toggle('hidden');
-    });
-
-    document.querySelectorAll('.sort-option').forEach(opt => {
-      opt.addEventListener('click', () => {
-        state.sortBy = opt.dataset.sort;
-        const labelText = opt.querySelector('span').textContent;
-        sortLabel.textContent = `Sort: ${labelText.split('(')[0].trim()}`;
-        sortDropdown.classList.add('hidden');
-        render();
-      });
-    });
-
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', () => {
-      sortDropdown.classList.add('hidden');
-      const dataDropdown = document.getElementById('data-dropdown');
-      if (dataDropdown) dataDropdown.classList.add('hidden');
-    });
-
-    // 7. Quick Inline Add Task Form
-    const quickAddForm = document.getElementById('quick-add-form');
-    quickAddForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const titleInput = document.getElementById('quick-task-title');
-      const catSelect = document.getElementById('quick-task-category');
-      const prioritySelect = document.getElementById('quick-task-priority');
-      const dueInput = document.getElementById('quick-task-due');
-
-      const title = titleInput.value.trim();
-      if (!title) return;
-
-      addTask({
-        title,
-        categoryId: catSelect.value,
-        priority: prioritySelect.value,
-        dueDate: dueInput.value || (state.view === 'today' ? getTodayDateString(0) : null)
-      });
-
-      titleInput.value = '';
-      titleInput.focus();
-    });
-
-    // Expand to detailed modal from quick add
-    document.getElementById('expand-to-modal-btn').addEventListener('click', () => {
-      const titleInput = document.getElementById('quick-task-title');
-      openTaskModal();
-      if (titleInput.value.trim()) {
-        document.getElementById('task-title-input').value = titleInput.value.trim();
-        titleInput.value = '';
-      }
-    });
-
-    // 8. Task List Event Delegation (Checkbox, Edit, Delete, Duplicate, Subtasks)
-    const taskListContainer = document.getElementById('task-list');
-
-    taskListContainer.addEventListener('click', (e) => {
-      // Toggle Task Complete
-      const toggle = e.target.closest('.task-toggle');
-      if (toggle) {
-        toggleTaskCompletion(toggle.dataset.id);
-        return;
-      }
-
-      // Edit Task Button
-      const editBtn = e.target.closest('.edit-task-btn');
-      if (editBtn) {
-        openTaskModal(editBtn.dataset.id);
-        return;
-      }
-
-      // Delete Task Button
-      const delBtn = e.target.closest('.delete-task-btn');
-      if (delBtn) {
-        deleteTask(delBtn.dataset.id);
-        return;
-      }
-
-      // Duplicate Task Button
-      const dupBtn = e.target.closest('.duplicate-task-btn');
-      if (dupBtn) {
-        duplicateTask(dupBtn.dataset.id);
-        return;
-      }
-
-      // Toggle Subtask
-      const subtaskCheck = e.target.closest('.subtask-toggle');
-      if (subtaskCheck) {
-        toggleSubtask(subtaskCheck.dataset.taskId, subtaskCheck.dataset.subtaskId);
-        return;
-      }
-    });
-
-    // 9. Task Form Submission in Modal
-    const taskForm = document.getElementById('task-form');
-    taskForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const title = document.getElementById('task-title-input').value.trim();
-      const desc = document.getElementById('task-desc-input').value.trim();
-      const categoryId = document.getElementById('task-category-select').value;
-      const priority = document.getElementById('task-priority-select').value;
-      const dueDate = document.getElementById('task-due-date-input').value;
-
-      if (!title) return;
-
-      if (state.editingTaskId) {
-        updateTask(state.editingTaskId, {
-          title,
-          description: desc,
-          categoryId,
-          priority,
-          dueDate: dueDate || null,
-          subtasks: state.modalSubtasks
-        });
-        showToast('Task updated');
-      } else {
-        addTask({
-          title,
-          description: desc,
-          categoryId,
-          priority,
-          dueDate: dueDate || null,
-          subtasks: state.modalSubtasks
-        });
-      }
-
-      closeTaskModal();
-    });
-
-    // Modal Subtasks (Add & Delete)
-    const addSubtaskBtn = document.getElementById('add-subtask-btn');
-    const newSubtaskInput = document.getElementById('new-subtask-input');
-
-    const handleAddSubtask = () => {
-      const text = newSubtaskInput.value.trim();
-      if (!text) return;
-      state.modalSubtasks.push({
-        id: 'sub-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5),
-        title: text,
-        completed: false
-      });
-      newSubtaskInput.value = '';
-      renderModalSubtasks();
-      newSubtaskInput.focus();
+    // 3. Tema Dark / Light
+    const toggleTheme = () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem(STORAGE_KEYS.THEME, isDark ? 'dark' : 'light');
     };
+    document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+    document.getElementById('mobile-theme-toggle').addEventListener('click', toggleTheme);
 
-    addSubtaskBtn.addEventListener('click', handleAddSubtask);
-    newSubtaskInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleAddSubtask();
+    // 4. Bater Ponto Principal (Entrada / Saída)
+    document.getElementById('clock-in-btn').addEventListener('click', () => clockIn());
+    document.getElementById('clock-out-btn').addEventListener('click', () => clockOut());
+
+    // 5. Banner de Chegada Automática
+    document.getElementById('confirm-arrival-btn').addEventListener('click', () => {
+      clockIn();
+    });
+    document.getElementById('dismiss-arrival-btn').addEventListener('click', () => {
+      document.getElementById('arrival-alert-banner').classList.add('hidden');
+    });
+
+    // 6. Simulador GPS (Chegada e Saída)
+    document.getElementById('sim-arrive-btn').addEventListener('click', () => {
+      state.simulationActive = true;
+      // Posiciona usuário exatamente nas coordenadas do trabalho (distância 0m)
+      handleNewGPSPosition(state.config.workLocation.lat, state.config.workLocation.lng);
+      showToast('Simulação: Você está DENTRO do local de trabalho! 🏢', 'success');
+    });
+
+    document.getElementById('sim-leave-btn').addEventListener('click', () => {
+      state.simulationActive = true;
+      // Posiciona usuário a 2km de distância
+      handleNewGPSPosition(state.config.workLocation.lat + 0.02, state.config.workLocation.lng + 0.02);
+      showToast('Simulação: Você saiu do trabalho (fora do raio). 🚗', 'alert');
+    });
+
+    document.getElementById('refresh-gps-btn').addEventListener('click', () => {
+      state.simulationActive = false;
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            handleNewGPSPosition(pos.coords.latitude, pos.coords.longitude);
+            showToast('GPS real atualizado com sucesso!');
+          },
+          err => showToast('GPS indisponível: ' + err.message, 'alert')
+        );
       }
     });
 
-    document.getElementById('modal-subtasks-list').addEventListener('click', (e) => {
-      const delBtn = e.target.closest('.modal-subtask-del');
+    // 7. Mapa Ações
+    document.getElementById('center-map-work-btn').addEventListener('click', () => {
+      if (state.map) {
+        state.map.setView([state.config.workLocation.lat, state.config.workLocation.lng], 16);
+      }
+    });
+
+    document.getElementById('use-current-location-btn').addEventListener('click', () => {
+      if (state.userLocation) {
+        updateWorkplaceCoordinates(state.userLocation.lat, state.userLocation.lng);
+        showToast('Local de trabalho atualizado para sua posição atual!');
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          updateWorkplaceCoordinates(pos.coords.latitude, pos.coords.longitude);
+          showToast('Local de trabalho definido com sucesso!');
+        });
+      }
+    });
+
+    // 8. Ajustar Horários de Hoje
+    document.getElementById('edit-today-details-btn').addEventListener('click', () => {
+      openEntryModal();
+      document.getElementById('entry-date').value = state.currentDay.date;
+      if (state.currentDay.startTime) document.getElementById('entry-start-time').value = state.currentDay.startTime;
+      if (state.currentDay.endTime) document.getElementById('entry-end-time').value = state.currentDay.endTime;
+    });
+
+    // 9. Lançamentos Histórico
+    document.getElementById('open-manual-entry-btn').addEventListener('click', () => openEntryModal());
+    document.getElementById('history-add-entry-btn').addEventListener('click', () => openEntryModal());
+    document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
+    document.getElementById('export-backup-btn').addEventListener('click', exportBackupJSON);
+
+    // Filtro de mês no histórico
+    const historyMonth = document.getElementById('history-month-filter');
+    if (historyMonth) {
+      historyMonth.value = getTodayString().substring(0, 7);
+      historyMonth.addEventListener('change', renderHistoryTable);
+    }
+
+    // Ações de linha na tabela (Editar / Excluir)
+    document.getElementById('history-table-body').addEventListener('click', (e) => {
+      const editBtn = e.target.closest('.edit-entry-btn');
+      if (editBtn) {
+        openEntryModal(editBtn.dataset.id);
+        return;
+      }
+
+      const delBtn = e.target.closest('.delete-entry-btn');
       if (delBtn) {
-        const idx = parseInt(delBtn.dataset.idx, 10);
-        state.modalSubtasks.splice(idx, 1);
-        renderModalSubtasks();
-        return;
-      }
-
-      const check = e.target.closest('.modal-subtask-check');
-      if (check) {
-        const idx = parseInt(check.dataset.idx, 10);
-        state.modalSubtasks[idx].completed = check.checked;
-        renderModalSubtasks();
-        return;
+        if (confirm('Deseja realmente excluir este registro de jornada?')) {
+          state.entries = state.entries.filter(en => en.id !== delBtn.dataset.id);
+          saveEntries();
+          renderHistoryTable();
+          renderReports();
+          updateHeaderEarnings();
+          showToast('Registro excluído');
+        }
       }
     });
 
-    // Delete in Modal
-    document.getElementById('modal-delete-btn').addEventListener('click', () => {
-      if (state.editingTaskId) {
-        deleteTask(state.editingTaskId);
-        closeTaskModal();
-      }
+    // 10. Modal Form de Lançamento
+    document.getElementById('close-entry-modal-btn').addEventListener('click', closeEntryModal);
+    document.getElementById('entry-modal-cancel').addEventListener('click', closeEntryModal);
+
+    ['entry-start-time', 'entry-end-time', 'entry-lunch-start', 'entry-lunch-end', 'entry-rate'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', updateEntryModalPreview);
     });
 
-    // Close Modal buttons
-    document.getElementById('close-modal-btn').addEventListener('click', closeTaskModal);
-    document.getElementById('modal-cancel-btn').addEventListener('click', closeTaskModal);
-    document.getElementById('task-modal').addEventListener('click', (e) => {
-      if (e.target.id === 'task-modal') closeTaskModal();
-    });
-
-    // 10. Buttons to open Create Task Modal
-    document.getElementById('sidebar-new-task-btn').addEventListener('click', () => openTaskModal());
-    document.getElementById('header-add-task-btn').addEventListener('click', () => openTaskModal());
-    document.getElementById('empty-add-btn').addEventListener('click', () => openTaskModal());
-
-    // 11. Category Modal & Form
-    document.getElementById('add-category-btn').addEventListener('click', openCategoryModal);
-    document.getElementById('close-category-modal-btn').addEventListener('click', closeCategoryModal);
-    document.getElementById('cancel-category-btn').addEventListener('click', closeCategoryModal);
-    document.getElementById('category-modal').addEventListener('click', (e) => {
-      if (e.target.id === 'category-modal') closeCategoryModal();
-    });
-
-    document.getElementById('category-form').addEventListener('submit', (e) => {
+    document.getElementById('entry-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const nameInput = document.getElementById('cat-name-input');
-      const name = nameInput.value.trim();
-      const colorInput = document.querySelector('input[name="cat-color"]:checked');
-      const color = colorInput ? colorInput.value : '#3b82f6';
+      const date = document.getElementById('entry-date').value;
+      const startTime = document.getElementById('entry-start-time').value;
+      const endTime = document.getElementById('entry-end-time').value;
+      const lunchStart = document.getElementById('entry-lunch-start').value;
+      const lunchEnd = document.getElementById('entry-lunch-end').value;
+      const rate = Number(document.getElementById('entry-rate').value) || state.config.hourlyRate;
 
-      if (!name) return;
+      if (!date || !startTime || !endTime) return;
 
-      const newCat = {
-        id: 'cat-' + Date.now(),
-        name,
-        color
+      if (state.editingEntryId) {
+        const idx = state.entries.findIndex(en => en.id === state.editingEntryId);
+        if (idx >= 0) {
+          state.entries[idx] = {
+            ...state.entries[idx],
+            date,
+            startTime,
+            endTime,
+            lunchStart,
+            lunchEnd,
+            hourlyRate: rate
+          };
+          showToast('Registro atualizado com sucesso!');
+        }
+      } else {
+        const newEntry = {
+          id: 'entry-' + Date.now(),
+          date,
+          startTime,
+          endTime,
+          lunchStart,
+          lunchEnd,
+          hourlyRate: rate,
+          notes: 'Lançamento manual'
+        };
+        state.entries.unshift(newEntry);
+        showToast('Registro adicionado com sucesso!');
+      }
+
+      // Se for a data de hoje, sincroniza o cartão principal
+      if (date === state.currentDay.date) {
+        state.currentDay.startTime = startTime;
+        state.currentDay.endTime = endTime;
+        state.currentDay.lunchStart = lunchStart;
+        state.currentDay.lunchEnd = lunchEnd;
+        saveCurrentDay();
+        updateTodayUI();
+      }
+
+      saveEntries();
+      closeEntryModal();
+      renderHistoryTable();
+      renderReports();
+      updateHeaderEarnings();
+    });
+
+    // 11. Calculadora de Férias
+    ['ferias-salario-input', 'ferias-dias-input', 'ferias-abono-select'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', updateVacationCalcPreview);
+    });
+
+    document.getElementById('ferias-calc-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const salary = Number(document.getElementById('ferias-salario-input').value) || state.config.monthlySalary;
+      const startDate = document.getElementById('ferias-data-inicio').value || getTodayString();
+      const days = Number(document.getElementById('ferias-dias-input').value) || 30;
+      const abono = document.getElementById('ferias-abono-select').value === 'sim';
+
+      const calc = calculateVacation(salary, days, abono);
+
+      const newVac = {
+        id: 'vac-' + Date.now(),
+        startDate,
+        days,
+        baseSalary: salary,
+        vacationValue: calc.periodBase,
+        oneThirdBonus: calc.oneThird,
+        totalValue: calc.totalValue,
+        soldAbono: abono,
+        notes: abono ? 'Férias com abono pecuniário' : 'Férias regulares'
       };
 
-      state.categories.push(newCat);
-      saveCategories();
-      render();
-      closeCategoryModal();
-      showToast(`Category "${name}" created!`);
+      state.vacations.unshift(newVac);
+      saveVacations();
+      renderVacations();
+      renderReports();
+      updateHeaderEarnings();
+      showToast('Período de férias cadastrado com sucesso!', 'success');
     });
 
-    // 12. Theme Toggle
-    document.getElementById('theme-toggle-btn').addEventListener('click', () => {
-      state.darkMode = !state.darkMode;
-      applyTheme();
+    // Excluir Férias
+    document.getElementById('ferias-list-container').addEventListener('click', (e) => {
+      const delBtn = e.target.closest('.delete-vacation-btn');
+      if (delBtn) {
+        if (confirm('Deseja excluir este período de férias?')) {
+          state.vacations = state.vacations.filter(v => v.id !== delBtn.dataset.id);
+          saveVacations();
+          renderVacations();
+          renderReports();
+          updateHeaderEarnings();
+          showToast('Férias excluídas');
+        }
+      }
     });
 
-    // 13. Sound Toggle
-    document.getElementById('sound-toggle-btn').addEventListener('click', () => {
-      state.soundEnabled = !state.soundEnabled;
-      saveSettings();
-      updateSoundUI();
-      showToast(state.soundEnabled ? 'Sound enabled 🔔' : 'Sound muted 🔕');
-      if (state.soundEnabled) playChimeSound();
+    // 12. Relatório Mês e Impressão
+    const reportMonth = document.getElementById('report-month-select');
+    if (reportMonth) {
+      reportMonth.addEventListener('change', renderReports);
+    }
+    document.getElementById('print-report-btn').addEventListener('click', () => {
+      window.print();
     });
 
-    // 14. Data Menu (Export, Import, Clear Completed)
-    const dataMenuBtn = document.getElementById('data-menu-btn');
-    const dataDropdown = document.getElementById('data-dropdown');
+    // 13. Formulário de Configurações
+    document.getElementById('settings-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      state.config.hourlyRate = Number(document.getElementById('cfg-hourly-rate').value);
+      state.config.overtimePercentage = Number(document.getElementById('cfg-overtime-pct').value);
+      state.config.monthlySalary = Number(document.getElementById('cfg-monthly-salary').value);
+      state.config.standardStartTime = document.getElementById('cfg-start-time').value;
+      state.config.standardEndTime = document.getElementById('cfg-end-time').value;
+      state.config.lunchMinutes = Number(document.getElementById('cfg-lunch-minutes').value);
+      state.config.workLocation.lat = Number(document.getElementById('cfg-work-lat').value);
+      state.config.workLocation.lng = Number(document.getElementById('cfg-work-lng').value);
+      state.config.workLocation.radius = Number(document.getElementById('cfg-work-radius').value);
 
-    dataMenuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dataDropdown.classList.toggle('hidden');
+      saveConfig();
+      if (state.workCircle) state.workCircle.setRadius(state.config.workLocation.radius);
+      updateGPSStatus();
+      updateTodayUI();
+      renderHistoryTable();
+      renderReports();
+      updateHeaderEarnings();
+      showToast('Configurações salvas com sucesso!', 'success');
     });
 
-    document.getElementById('export-data-btn').addEventListener('click', () => {
-      dataDropdown.classList.add('hidden');
-      exportData();
-    });
-
-    document.getElementById('import-file-input').addEventListener('change', (e) => {
-      dataDropdown.classList.add('hidden');
-      if (e.target.files && e.target.files[0]) {
-        importData(e.target.files[0]);
-        e.target.value = '';
+    document.getElementById('cfg-get-gps-btn').addEventListener('click', () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          document.getElementById('cfg-work-lat').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('cfg-work-lng').value = pos.coords.longitude.toFixed(6);
+          showToast('Coordenadas atuais inseridas no formulário!');
+        });
       }
     });
 
-    document.getElementById('clear-completed-btn').addEventListener('click', () => {
-      dataDropdown.classList.add('hidden');
-      clearCompletedTasks();
-    });
-
-    // 15. Mobile Sidebar Toggle
-    document.getElementById('open-sidebar-btn').addEventListener('click', toggleSidebar);
-    document.getElementById('close-sidebar-btn').addEventListener('click', toggleSidebar);
-    document.getElementById('sidebar-backdrop').addEventListener('click', toggleSidebar);
-
-    // 16. Global Keyboard Shortcuts
-    document.addEventListener('keydown', (e) => {
-      const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-      const isInputActive = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
-
-      // Escape closes modals or clears search
-      if (e.key === 'Escape') {
-        const taskModal = document.getElementById('task-modal');
-        const catModal = document.getElementById('category-modal');
-        if (!taskModal.classList.contains('hidden')) {
-          closeTaskModal();
-          return;
-        }
-        if (!catModal.classList.contains('hidden')) {
-          closeCategoryModal();
-          return;
-        }
-        if (state.searchQuery) {
-          searchInput.value = '';
-          state.searchQuery = '';
-          clearSearchBtn.classList.add('hidden');
-          render();
-        }
-      }
-
-      // Only handle shortcut if not typing in an input
-      if (!isInputActive) {
-        if (e.key === 'n' || e.key === 'N') {
-          e.preventDefault();
-          openTaskModal();
-        } else if (e.key === '/') {
-          e.preventDefault();
-          searchInput.focus();
-        }
+    document.getElementById('cfg-reset-defaults-btn').addEventListener('click', () => {
+      if (confirm('Deseja restaurar todas as configurações para o padrão?')) {
+        state.config = { ...DEFAULT_CONFIG };
+        saveConfig();
+        loadConfigForm();
+        showToast('Configurações restauradas.');
       }
     });
   }
 
-  // --- Initialize App ---
+  // --- Inicialização ---
   function init() {
-    loadState();
-    applyTheme();
-    updateSoundUI();
-    render();
+    loadFromStorage();
+    loadConfigForm();
+    initMap();
+    startGPSTracking();
+    updateLiveClock();
+    setInterval(updateLiveClock, 1000);
+    updateTodayUI();
+    renderHistoryTable();
+    renderVacations();
+    updateVacationCalcPreview();
+    renderReports();
+    updateHeaderEarnings();
     setupEventListeners();
+
+    // Data inicial no form de férias
+    const feriasDate = document.getElementById('ferias-data-inicio');
+    if (feriasDate) feriasDate.value = getTodayString();
   }
 
-  // Run on DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
