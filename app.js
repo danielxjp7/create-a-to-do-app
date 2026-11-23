@@ -217,6 +217,7 @@
     distanceToWork: null,
     activeTab: 'ponto',
     editingEntryId: null,
+    salaryHidden: false,
     map: null,
     workMarker: null,
     workCircle: null,
@@ -476,6 +477,11 @@
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
+      }
+
+      const savedSalaryHidden = localStorage.getItem('pontogps_salary_hidden');
+      if (savedSalaryHidden !== null) {
+        state.salaryHidden = JSON.parse(savedSalaryHidden);
       }
     } catch (e) {
       console.error('Erro ao ler armazenamento local:', e);
