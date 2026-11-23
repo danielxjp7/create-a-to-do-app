@@ -64,6 +64,18 @@
       "created_at": "2026-11-23T10:26:30.941Z",
       "sender": "ios",
       "is_cancelled": false
+    },
+    {
+      "id": "15e55fea-4dba-41d3-b158-77ac094bb403",
+      "role": "agent",
+      "content": "As alterações foram implementadas com sucesso!\n\n### 🌐 Acesse a Aplicação Atualizada\n👉 **[Abrir o PontoGPS Pro (¥ Ienes)](https://antigravity.luch.dev/site/ad454f75-5590-44ca-9a5b-676d79599810/cd6e803257365647941db4be/)**\n\n---\n\n### 🔄 O que mudou:\n\n1. **Moeda em Ienes (JPY ¥)**:\n   - Todo o sistema agora opera em ienes japoneses (ex: **¥ 1.500/h**, **¥ 12.000/dia**).\n   - Formatação inteira própria para o iene em todos os cartões, relatórios, histórico e holerite.\n\n2. **Férias Remuneradas por % da Hora Normal (Yukyu)**:\n   - **Cálculo Diário**: Cada dia de férias é calculado como **8h normais × Valor da Hora × (% configurada)** (padrão 100%, podendo ajustar para 80%, 60%, etc.).\n   - **Horas Trabalhadas Físicas**: O registro de férias **não acrescenta horas no total de horas trabalhadas** (soma 0.0h físicas).\n   - **Salário Final a Receber**: O valor financeiro das 8h diárias de férias é creditado **diretamente no salário final a receber**.\n   - É possível registrar férias tanto na aba dedicada **Férias Remuneradas** quanto marcando a opção **\"Marcar como Dia de Férias Remuneradas\"** no formulário de lançamento diário.\n\n3. **Definição de Data de Início e Fim do Cálculo do Mês (Fechamento / Shimebi)**:\n   - Barra de seleção de período presente no topo com campos editáveis de **Data de Início** e **Data de Fim**.\n   - Botões de atalho rápido:\n     - **Mês Atual**: do dia 1º ao último dia do mês corrente.\n     - **Dia 20**: do dia 21 do mês anterior ao dia 20 deste mês.\n     - **Dia 25**: do dia 26 do mês anterior ao dia 25 deste mês.\n   - Todos os relatórios, horas normais, horas extras, dias de férias e salário a receber recalculam automaticamente para o período escolhido.\n\n---\n\n### 📁 Arquivos Atualizados\n- [index.html](file:///home/agent/workspace/index.html) — Novo seletor de período com data início/fim, campos em ienes (¥) e opção de férias no modal.\n- [style.css](file:///home/agent/workspace/style.css) — Estilização dos indicadores de período e dias de descanso remunerado.\n- [app.js](file:///home/agent/workspace/app.js) — Lógica de conversão em ienes, cálculo de férias a 8h/% sem somar em horas físicas e filtragem dinâmica por intervalo de datas.",
+      "status": "completed",
+      "model": "gemini-3.8-flash-high",
+      "client_type": "gemini-bridge",
+      "parent_message_id": "55e8a54a-18e7-41e9-a391-7b0c4fad03c4",
+      "created_at": "2026-11-23T10:33:19.187Z",
+      "sender": "macOS",
+      "is_cancelled": false
     }
   ]
 }
